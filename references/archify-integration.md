@@ -4,7 +4,7 @@
 
 | 场景 | 用什么 |
 |---|---|
-| 方案确认页里的"系统流程" tab（spec.sysflows） | 保留内嵌 sysflow（可批注、与单元联动） |
+| 方案确认页里的"系统流程" tab（spec.sysflows） | **首选 Archify embed**：`archify render` 出 HTML → `wrap-archify.mjs` 包装 → 塞进 sysflows[i].embedHtml（renderSysFlows 已支持 iframe srcdoc，点节点批注可用）。无 embedHtml 的条目回落到内嵌泳道 |
 | 独立交付的流程图/架构图 HTML（发钉钉、开会投屏、放设计文档） | **Archify** |
 | 需要手工拖拽编辑的架构草图（开会现场共创） | Excalidraw（.excalidraw + build-excalidraw.mjs） |
 | 代码库/多源真实数据溯源的架构图 | **Archify**（sources 字段带 repo 溯源） |
