@@ -1141,10 +1141,9 @@ function detailRender(n, p, side, whole) {
       fitbox.style.width = '100%';
       const naturalH = inner.scrollHeight;
       fitbox.style.height = Math.round(naturalH * s) + 'px';
-      mini.style.maxHeight = Math.round(window.innerHeight * 0.6) + 'px';
+      // 完整展示: 不设高度上限, 由详情面板整体滚动浏览
+      mini.style.maxHeight = 'none';
       inner.dataset.scale = String(s);
-      const t = inner.querySelector('.dt-hit');
-      if (t && t.scrollIntoView) t.scrollIntoView({ block: 'center' });
     };
     requestAnimationFrame(fitScale);
     // 高亮命中当前单元的锚点, 其余淡化
