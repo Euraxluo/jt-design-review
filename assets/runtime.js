@@ -511,7 +511,7 @@ function unitTitle(u) {
 }
 
 // ------------------------------------------------------------------ wireframe rendering
-function visItems(v, side, key) { return (v[key] || []).filter((x) => !(x && typeof x === 'object') || visible({ change: x.change || 'unchanged' }, side)); }
+function visItems(v, side, key) { const a = v[key]; if (!Array.isArray(a)) return typeof a === 'string' && a ? [{ name: a, change: 'unchanged' }] : []; return a.filter((x) => !(x && typeof x === 'object') || visible({ change: x.change || 'unchanged' }, side)); }
 function itemEl(x, side, cls) {
   if (x && typeof x === 'object') { const c = chgOf({ change: x.change || 'unchanged' }, side); return h('span', { class: cls + (c ? ' chg chg-' + c[0] + ' side-' + side : ''), title: c ? c[1] : null }, itemText(x)); }
   return h('span', { class: cls }, String(x));
@@ -993,14 +993,7 @@ function htmlReplica(p) {
     onclick: (ev) => {
       const t = ev.target;
       const nodeEl = t.closest && t.closest('[data-kind="node"][data-id]');
-      const markEl = t.closest && t.closest('.mark[data-n]');
       if (nodeEl) { focusNode(p.id, nodeEl.dataset.id); return; }
-      if (markEl) {
-        computeUnits();
-        const n = parseInt(markEl.dataset.n, 10);
-        const u = UNITS.filter((x) => x.page === p.id).find((x) => x.n === n);
-        if (u) { focusUnit(u.key); return; }
-      }
       // 复刻任意元素: 动态注册成可批注节点
       const el = replicaPickable(t, p);
       if (el) { ensureReplicaNode(p, el); }

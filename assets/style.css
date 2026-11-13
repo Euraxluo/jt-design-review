@@ -478,8 +478,6 @@ input,select,textarea{border:1px solid #777}
 .cv-replica [data-kind="node"]{cursor:pointer;outline-offset:2px}
 .cv-replica [data-kind="node"]:hover{outline:2px solid #4c6ef588}
 
-.cv-replica .mark{cursor:pointer}
-.cv-replica .mark:hover{outline-color:#4c6ef5}
 
 .rep-sel-hover{outline:2px solid #4c6ef5 !important;outline-offset:1px;cursor:pointer}
 
