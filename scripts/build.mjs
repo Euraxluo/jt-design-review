@@ -54,22 +54,6 @@ const template = readFileSync(join(assets, 'template.html'), 'utf8');
 const css = readFileSync(join(assets, 'style.css'), 'utf8');
 const runtime = readFileSync(join(assets, 'runtime.js'), 'utf8');
 const specJson = JSON.stringify(spec).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
-
-// cross-pool id uniqueness (backend + datachanges + middleware + flows)
-{
-  const seen = new Map();
-  const pools = [['backend', spec.backend], ['datachanges', spec.datachanges || []], ['middleware', spec.middleware || []], ['flows', spec.flows || []]];
-  for (const [pool, arr] of pools) {
-    for (const m of arr || []) {
-      const key = m.id;
-      if (seen.has(key)) { fail.push(`✖ 跨池 id 冲突: #${key} 同时存在于 ${seen.get(key)} 和 ${pool}`); } else seen.set(key, pool); }
-      for (const it of m.items || []) {
-        const k2 = it.id;
-        if (seen.has(k2)) { fail.push(`✖ 跨池 id 冲突: #${k2} 同时存在于 ${seen.get(k2)} 和 ${pool}(item)`); } else seen.set(k2, pool + '(item)'); }
-    }
-  }
-}
-
 const html = template
   .replace('__TITLE__', () => escapeHtml((spec.title || 'smyw') + ' · 变更预览'))
   .replace('/*__STYLE__*/', () => css)
@@ -192,6 +176,23 @@ function validate(spec) {
     if (m.items !== undefined && !Array.isArray(m.items)) { errors.push(mw + '：items 必须是数组'); continue; }
     for (const it of m.items || []) { const iw = mw + ' › ' + (it.name || it.id || '?'); reg(it, iw); chk(it, iw); bump(cnt.be, it); }
   }
+  // 扩展池: datachanges / middleware / sysflows (跨池 id 冲突检查复用 reg)
+  const datachanges = Array.isArray(spec.datachanges) ? spec.datachanges : [];
+  for (const m of datachanges) {
+    const dw = '数据库模块「' + (m.name || m.id || '?') + '」';
+    reg(m, dw); chk(m, dw);
+    if (m.items !== undefined && !Array.isArray(m.items)) { errors.push(dw + '：items 必须是数组'); continue; }
+    for (const it of m.items || []) { const iw = dw + ' › ' + (it.table || it.name || it.id || '?'); reg(it, iw); chk(it, iw); }
+  }
+  const middleware = Array.isArray(spec.middleware) ? spec.middleware : [];
+  for (const m of middleware) {
+    const ww = '中间件模块「' + (m.name || m.id || '?') + '」';
+    reg(m, ww); chk(m, ww);
+    if (m.items !== undefined && !Array.isArray(m.items)) { errors.push(ww + '：items 必须是数组'); continue; }
+    for (const it of m.items || []) { const iw = ww + ' › ' + (it.name || it.id || '?'); reg(it, iw); chk(it, iw); }
+  }
+  const sysflows = Array.isArray(spec.sysflows) ? spec.sysflows : [];
+  for (const m of sysflows) { reg(m, '系统流程「' + (m.name || m.id || '?') + '」'); }
   const f = (b) => '+' + b.added + ' −' + b.removed + ' ~' + b.modified;
   const summary = '· 页面 ' + pages.length + '（' + f(cnt.pages) + '）· 界面元素变化 ' + f(cnt.nodes) + ' · 流程 ' + flows.length + '（步骤 ' + f(cnt.steps) + '）· 后端 ' + backend.length + ' 个模块（' + f(cnt.be) + '）';
   if (!pages.length && !flows.length && !backend.length) warnings.push('spec 里没有 pages / flows / backend，预览将是空的');
