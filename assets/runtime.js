@@ -1160,10 +1160,10 @@ function detailRender(n, p, side, whole) {
       inner.style.transformOrigin = 'top left';
       fitbox.style.position = 'relative';
       fitbox.style.width = '100%';
-      const exactH = Math.round(naturalH * s);
+      const exactH = Math.round(naturalH * s) + 10; // +10 补偿 mini 上下 padding(4+4)与取整误差
       fitbox.style.height = exactH + 'px';
-      // 单屏模式下，高度完全根据 ratio 呈现，不会被强制截断；若屏幕超长则由 mini 优雅包裹
-      mini.style.height = exactH + 'px';
+      // 单屏模式下，高度完全根据 ratio 呈现，不会被强制截断
+      mini.style.height = 'auto';
       mini.style.maxHeight = 'none';
       inner.dataset.scale = String(s);
     };
