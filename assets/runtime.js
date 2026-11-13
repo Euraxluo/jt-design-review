@@ -1120,46 +1120,58 @@ function collectFns(n, side) {
   (function walk(x) { if (!visible(x, side)) return; const v = view(x, side); if (v.fn && out.indexOf(v.fn) < 0) out.push(v.fn); (v.children || []).forEach(walk); })(n);
   return out;
 }
+function pickScreenHtml(html, uid) {
+  if (!html || typeof DOMParser === 'undefined' || html.indexOf('class="frame"') < 0) return html;
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const frames = Array.from(doc.querySelectorAll('.frame'));
+    if (frames.length <= 1) return html;
+    let targetFrame = frames.find((f) => f.querySelector('[data-replica-unit="' + uid + '"]'));
+    if (!targetFrame) targetFrame = frames[0];
+    let prev = targetFrame.previousElementSibling;
+    while (prev && prev.tagName !== 'H2') prev = prev.previousElementSibling;
+    const h2Html = prev ? prev.outerHTML : '';
+    return '<div class="col">' + h2Html + targetFrame.outerHTML + '</div>';
+  } catch (e) {
+    return html;
+  }
+}
 function detailRender(n, p, side, whole) {
   // 复刻页优先: 详情面板里直接展示该侧复刻小图(视觉与画布一致), 高亮当前单元锚点
-  const replicaHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
-  if (replicaHtml) {
+  const rawHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
+  if (rawHtml) {
     const uid = ui.unit || n.id;
-    const inner = h('div', { class: 'dt-replica-b replica-scope', style: { width: '860px' }, innerHTML: (p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '') + replicaHtml });
-    const fitbox = h('div', { class: 'dt-replica-fit' }, inner); // 定尺寸的缩放占位盒(宽=面板宽, 高=内容高×s)
+    // 核心优化: 只提取当前改动单元所在的单屏 frame，避免多屏纵排压缩，以最佳 ratio 展示
+    const screenHtml = pickScreenHtml(rawHtml, uid);
+    const inner = h('div', { class: 'dt-replica-b replica-scope', style: { width: '860px' }, innerHTML: (p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '') + screenHtml });
+    const fitbox = h('div', { class: 'dt-replica-fit' }, inner);
     const mini = h('div', { class: 'dt-replica' }, fitbox);
     const fitScale = () => {
       if (!mini.isConnected) return;
-      const avail = (mini.clientWidth || 460) - 8;
-      const capH = Math.round(window.innerHeight * 1.15); // 允许更高的等比视图, 面板内滚动浏览
+      const avail = Math.max(200, (mini.clientWidth || 460) - 8);
       inner.style.position = 'absolute';
       inner.style.top = '0'; inner.style.left = '0';
       inner.style.transform = 'none';
       const naturalH = inner.scrollHeight || 1;
-      // 实测内容固有宽(消灭双源: 缩放分母=布局宽, transform 不影响 offsetWidth)
       const W = Math.max(1, inner.offsetWidth);
-      // 整页完整可见: 同时适配宽度与高度(取更小缩放比), 不截断
-      const s = Math.min(1, avail / W, capH / naturalH);
+      // 按照内容的自然 ratio 严格等比缩放，内容完全自适应填满容器宽度并算出等比高度
+      const s = avail / W;
       inner.style.transform = 'scale(' + s + ')';
       inner.style.transformOrigin = 'top left';
       fitbox.style.position = 'relative';
       fitbox.style.width = '100%';
-      fitbox.style.height = Math.round(naturalH * s) + 'px';
-      mini.style.maxHeight = Math.round(window.innerHeight * 0.66) + 'px'; // 面板内滚动
+      const exactH = Math.round(naturalH * s);
+      fitbox.style.height = exactH + 'px';
+      // 单屏模式下，高度完全根据 ratio 呈现，不会被强制截断；若屏幕超长则由 mini 优雅包裹
+      mini.style.height = exactH + 'px';
+      mini.style.maxHeight = 'none';
       inner.dataset.scale = String(s);
-      // 滚动到命中锚点
-      const t = inner.querySelector('.dt-hit');
-      if (t) {
-        const ts = parseFloat(String(s)) || 1;
-        const ty = (t.offsetTop || 0) * ts;
-        mini.scrollTop = Math.max(0, ty - mini.clientHeight / 2.4);
-      }
     };
     requestAnimationFrame(fitScale);
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(() => fitScale());
       ro.observe(mini);
-      if (mini.parentElement) ro.observe(mini.parentElement); // 面板/列宽变化时重算缩放
+      if (mini.parentElement) ro.observe(mini.parentElement);
       setTimeout(() => ro.disconnect(), 15000);
     }
     // 高亮命中当前单元的锚点, 其余淡化
@@ -1168,13 +1180,10 @@ function detailRender(n, p, side, whole) {
       const box = mini.querySelector('.dt-replica-b');
       if (!box) return;
       box.querySelectorAll('[data-replica-unit]').forEach((el) => {
-        // 命中: 自身或任一祖先锚点指向当前单元
         let e2 = el, match = false;
         while (e2 && e2.getAttribute) { if (e2.getAttribute('data-replica-unit') === uid) { match = true; break; } e2 = e2.parentElement && e2.parentElement.closest ? e2.parentElement.closest('[data-replica-unit]') : null; }
         el.classList.add(match ? 'dt-hit' : 'dt-dim');
       });
-      const t = box.querySelector('.dt-hit');
-      if (t && t.scrollIntoView) t.scrollIntoView({ block: 'center' });
     });
     return mini;
   }
