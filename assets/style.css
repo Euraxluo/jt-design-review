@@ -554,7 +554,7 @@ input,select,textarea{border:1px solid #777}
 .cv-replica-b [data-unit-n]{position:relative;outline:2px dashed #e8590c;outline-offset:2px;border-radius:4px;cursor:pointer}
 .cv-replica-b [data-unit-chg="added"]{outline-color:#18a058}
 .cv-replica-b [data-unit-chg="removed"]{outline-color:#e5484d}
-.cv-replica-b [data-unit-n]::after{content:attr(data-unit-n);position:absolute;top:-9px;right:-9px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e8590c;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;z-index:60;box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none}
+.cv-replica-b [data-unit-n]::after{content:attr(data-unit-n) " " attr(data-unit-chg-zh);position:absolute;top:-9px;right:-9px;height:18px;padding:0 8px;border-radius:9px;background:#e8590c;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;z-index:60;box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none;white-space:nowrap}
 .cv-replica-b [data-unit-chg="added"]::after{background:#18a058}
 .cv-replica-b [data-unit-chg="removed"]::after{background:#e5484d}
 .cv-replica-b [data-unit-n]:hover{outline-style:solid}

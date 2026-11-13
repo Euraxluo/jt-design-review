@@ -93,7 +93,8 @@ function injectReplicaUnits(spec) {
         if (!u) { const uid = unitOfBuild(spec, p.id, nid); if (uid) u = units.find((x) => x.page === p.id && x.id === uid); }
         if (!u) return m + ' data-unit-miss="1"'; // 绑定缺失, 校验器报错
         const sideOk = !(u.change === 'added' && side === 'before') && !(u.change === 'removed' && side === 'after');
-        return m + ' data-unit-n="' + u.n + '" data-unit-chg="' + u.change + '"' + (sideOk ? '' : ' data-unit-side-miss="1"');
+        const zh = u.change === 'added' ? '新增' : u.change === 'removed' ? '删除' : '修改';
+        return m + ' data-unit-n="' + u.n + '" data-unit-chg="' + u.change + '" data-unit-chg-zh="' + zh + '"' + (sideOk ? '' : ' data-unit-side-miss="1"');
       });
       p[hk] = html;
     });
