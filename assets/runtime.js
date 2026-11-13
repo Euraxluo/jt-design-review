@@ -1429,11 +1429,13 @@ function dbBox(m, side) {
         (iv.columns || []).length ? h('div', { class: 'cols' }, (iv.columns || []).map((c) => {
           const cv = side === 'before' && c.change === 'added' ? null : (side === 'after' && c.change === 'removed' ? null : c);
           if (!cv) return null;
+          const oldVal = (side === 'after' && cv.change === 'modified' && c.before !== undefined) ? String(typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) : null;
           return h('div', { class: 'col-line ' + (cv.change || '') },
             h('span', { class: 'col-sign' }, cv.change === 'added' ? '+' : cv.change === 'removed' ? '−' : cv.change === 'modified' ? '~' : '·'),
             h('code', null, cv.name), cv.type ? h('span', { class: 'muted' }, cv.type) : null,
-            side === 'before' && cv.change === 'modified' && c.before ? h('span', { class: 'muted' }, '（' + (typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) + '）') : null,
-            cv.note ? h('span', { class: 'col-note' }, cv.note) : null);
+            oldVal ? h('span', null, h('span', { class: 'col-old' }, oldVal), h('span', { class: 'col-arrow' }, ' → '), h('span', { class: 'col-new' }, (cv.note || ''))) :
+              (side === 'before' && cv.change === 'modified' && c.before ? h('span', { class: 'muted' }, '（' + (typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) + ' →）') : null),
+            !oldVal && cv.note ? h('span', { class: 'col-note' }, cv.note) : null);
         }).filter(Boolean)) : null,
         iv.indexes && iv.indexes !== '-' ? h('div', { class: 'idx' }, '索引: ', h('code', null, iv.indexes)) : null,
         (iv.note && !iv.columns) || (iv.note && side === 'after') ? h('span', { class: 'be-note' }, iv.note || it.note) : null,
