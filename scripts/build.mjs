@@ -53,7 +53,69 @@ if (checkOnly) { console.log('✔ 校验通过'); process.exit(0); }
 const template = readFileSync(join(assets, 'template.html'), 'utf8');
 const css = readFileSync(join(assets, 'style.css'), 'utf8');
 const runtime = readFileSync(join(assets, 'runtime.js'), 'utf8');
+spec = injectReplicaUnits(spec);
+// 校验: data-unit-miss
+const missCount = JSON.stringify(spec).split('data-unit-miss').length - 1;
+if (missCount) errors.push('复刻 HTML 里有 ' + missCount + ' 处 data-replica-unit 找不到对应改动单元（检查节点 id）');
 const specJson = JSON.stringify(spec).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
+// ---- 复刻标注静态注入: data-replica-unit → 真实编号 + 变更色 ----
+function computeUnitsBuild(spec) {
+  const list = [];
+  (spec.pages || []).forEach((p) => {
+    if (p.change === 'added' || p.change === 'removed') { list.push({ key: p.id, page: p.id, id: p.id, change: p.change }); return; }
+    const walk = (n) => { const ch = n.change || 'unchanged'; if (n !== p.root && ch !== 'unchanged') { list.push({ key: n.id, page: p.id, id: n.id, change: ch }); return; } (n.children || []).forEach(walk); };
+    walk(p.root); (p.overlays || []).forEach(walk);
+  });
+  list.forEach((u, i) => { u.n = i + 1; });
+  return list;
+}
+function unitOfBuild(spec, pid, nid) {
+  const p = (spec.pages || []).find((x) => x.id === pid); if (!p) return null;
+  const chain = []; const find = (n, par) => { if (!n) return false; if (n.id === nid) { chain.push(par, n); return true; } for (const c of (n.children || [])) { if (find(c, n)) { chain.push(par); return true; } } return false; };
+  // 简化: 收集 root→nid 路径
+  const path = []; const dfs = (n) => { if (!n) return false; path.push(n); if (n.id === nid) return true; for (const c of (n.children || [])) if (dfs(c)) return true; path.pop(); return false; };
+  let found = dfs(p.root);
+  if (!found) { for (const ov of (p.overlays || [])) { path.length = 0; if (dfs(ov)) { found = true; break; } } }
+  if (!found) return null;
+  const top = path.filter((x) => x !== p.root && x.change && x.change !== 'unchanged')[0] || null;
+  return top ? top.id : null;
+}
+function injectReplicaUnits(spec) {
+  const units = computeUnitsBuild(spec);
+  (spec.pages || []).forEach((p) => {
+    ['htmlBefore', 'htmlAfter'].forEach((hk) => {
+      let html = p[hk];
+      if (!html || html.indexOf('data-replica-unit') < 0) return;
+      const side = hk === 'htmlBefore' ? 'before' : 'after';
+      html = html.replace(/data-replica-unit="([^"]+)"/g, (m, nid) => {
+        let u = units.find((x) => x.page === p.id && x.id === nid);
+        if (!u) { const uid = unitOfBuild(spec, p.id, nid); if (uid) u = units.find((x) => x.page === p.id && x.id === uid); }
+        if (!u) return m + ' data-unit-miss="1"'; // 绑定缺失, 校验器报错
+        const sideOk = !(u.change === 'added' && side === 'before') && !(u.change === 'removed' && side === 'after');
+        return m + ' data-unit-n="' + u.n + '" data-unit-chg="' + u.change + '"' + (sideOk ? '' : ' data-unit-side-miss="1"');
+      });
+      p[hk] = html;
+    });
+    // overlays 的 html 变体也处理(若有)
+    (p.overlays || []).forEach((ov) => {
+      ['htmlBefore', 'htmlAfter'].forEach((hk) => {
+        let html = ov[hk];
+        if (!html || html.indexOf('data-replica-unit') < 0) return;
+        const side = hk === 'htmlBefore' ? 'before' : 'after';
+        html = html.replace(/data-replica-unit="([^"]+)"/g, (m, nid) => {
+          let u = units.find((x) => x.page === p.id && x.id === nid);
+          if (!u) { const uid = unitOfBuild(spec, p.id, nid); if (uid) u = units.find((x) => x.page === p.id && x.id === uid); }
+          if (!u) return m + ' data-unit-miss="1"';
+          return m + ' data-unit-n="' + u.n + '" data-unit-chg="' + u.change + '"';
+        });
+        ov[hk] = html;
+      });
+    });
+  });
+  return spec;
+}
+
 const html = template
   .replace('__TITLE__', () => escapeHtml((spec.title || 'smyw') + ' · 变更预览'))
   .replace('/*__STYLE__*/', () => css)

@@ -549,3 +549,17 @@ input,select,textarea{border:1px solid #777}
 .cv-replica-wrap{position:relative}
 .rep-ov{z-index:400;cursor:pointer;border-radius:6px}
 .rep-ov:hover{filter:brightness(0.97)}
+
+/* 复刻变更标注: build 注入 data-unit-n/chg, 伪元素画框+角标(零 DOM 注入) */
+.cv-replica-b [data-unit-n]{position:relative;outline:2px dashed #e8590c;outline-offset:2px;border-radius:4px;cursor:pointer}
+.cv-replica-b [data-unit-chg="added"]{outline-color:#18a058}
+.cv-replica-b [data-unit-chg="removed"]{outline-color:#e5484d}
+.cv-replica-b [data-unit-n]::after{content:attr(data-unit-n);position:absolute;top:-9px;right:-9px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e8590c;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;z-index:60;box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none}
+.cv-replica-b [data-unit-chg="added"]::after{background:#18a058}
+.cv-replica-b [data-unit-chg="removed"]::after{background:#e5484d}
+.cv-replica-b [data-unit-n]:hover{outline-style:solid}
+.cv-replica-b [data-unit-side-miss]::after{opacity:.35}
+/* 演示模式: 隐藏全部标注 */
+.pl-frame [data-unit-n], .pl-frame [data-unit-n]::after{outline:none!important}
+.pl-frame[data-play] [data-unit-n]{outline:none!important;cursor:default}
+.pl-frame[data-play] [data-unit-n]::after{display:none}
