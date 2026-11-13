@@ -127,7 +127,7 @@ function contains(a, b) { return a === b || (a.children || []).some((c) => conta
 function isCont(n) { return CONTAINER.has(n.type) || !!(n.children && n.children.length); }
 function afterVisibleIds(p) { const s = new Set(); const walk = (n) => { if (n.change === 'removed') return; s.add(n.id); (n.children || []).forEach(walk); }; walk(p.root); p.overlays.forEach(walk); return s; }
 function parentChain(p, id) { let chain = null; const walk = (n, path) => { if (n.id === id) { chain = path; return true; } return (n.children || []).some((c) => walk(c, path.concat([n]))); }; if (!walk(p.root, [])) p.overlays.some((o) => walk(o, [])); return chain || []; }
-function findBe(id) { for (const m of S.spec.backend) { if (m.id === id) return { m: m, item: null }; const it = m.items.find((i) => i.id === id); if (it) return { m: m, item: it }; } return null; }
+function findBe(id) { const pools = [S.spec.backend, S.spec.datachanges, S.spec.middleware].filter(Array.isArray); for (const pool of pools) { for (const m of pool) { if (m.id === id) return { m: m, item: null }; const it = (m.items || []).find((i) => i.id === id); if (it) return { m: m, item: it }; } } return null; }
 function visible(o, side) { return !(side === 'before' && o.change === 'added') && !(side === 'after' && o.change === 'removed'); }
 function view(o, side) {
   if (side !== 'before' || !o.before) return o;
@@ -1425,6 +1425,7 @@ function dbBox(m, side) {
       return h('div', { class: 'be-item tbl-item ' + chgClass(it, side), 'data-kind': 'be', 'data-id': it.id, 'data-side': side, title: (iv.note || it.note) || null },
         chgTag(it, side), h('span', { class: 'chip sm' }, '表'), h('code', null, iv.table || iv.name || ''),
         iv.ddl ? h('pre', { class: 'ddl' }, iv.ddl) : null,
+        (iv.columns && !Array.isArray(iv.columns)) ? h('div', { class: 'cols' }, h('div', { class: 'col-line' }, h('span', { class: 'col-sign' }, '·'), h('span', { class: 'muted' }, String(iv.columns)))) :
         (iv.columns || []).length ? h('div', { class: 'cols' }, (iv.columns || []).map((c) => {
           const cv = side === 'before' && c.change === 'added' ? null : (side === 'after' && c.change === 'removed' ? null : c);
           if (!cv) return null;
