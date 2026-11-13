@@ -574,3 +574,7 @@ input,select,textarea{border:1px solid #777}
 .dt-replica [data-replica-unit].dt-hit::after{background:#4c6ef5!important}
 .dt-replica [data-replica-unit].dt-dim{opacity:.45}
 .dt-replica [data-replica-unit]{cursor:default}
+
+/* 演示模式: 复刻页面主体 */
+.pl-replica .cv-replica-t{display:none}
+.pl-frame.has-replica .pl-fb{background:#fff}

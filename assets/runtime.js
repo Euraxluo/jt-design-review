@@ -1417,12 +1417,32 @@ function playOverlay(id, side) {
   const box = h('div', { class: 'pl-ov pl-ov-' + v.type, style: { width: (OV_W[v.type] || 420) + 'px' } }, renderWF(n, f.p, { side: side, ctx: 'play', parentLayout: 'col' }));
   return h('div', { class: 'pl-back pl-back-' + v.type + (v.type === 'modal' || v.type === 'drawer' ? ' dim' : ''), 'data-close': id }, box);
 }
+function playReplicaBody(p, side) {
+  const replicaHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
+  if (!replicaHtml) return null;
+  const styleTag = p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '';
+  return h('div', { class: 'pl-replica replica-scope', 'data-pl-page': p.id,
+    innerHTML: styleTag + replicaHtml,
+    onclick: (ev) => {
+      const t = ev.target;
+      // 阻止复刻内真实跳转/提交
+      const a = t.closest && t.closest('a');
+      if (a) ev.preventDefault();
+      const f = t.closest && t.closest('form');
+      if (f) ev.preventDefault();
+      // spec 节点 → 原型交互
+      const nd = t.closest && t.closest('[data-kind="node"][data-id]');
+      if (nd) { if (runIA(p.id, nd.dataset.id)) return; }
+      // 复刻标注锚点在演示模式下无操作
+    } });
+}
 function renderPlay() {
   const P = ui.play; const p = pageById(P.page) || S.spec.pages[0];
   const side = P.side;
   const gone = (side === 'after' && p.change === 'removed') || (side === 'before' && p.change === 'added');
-  const body = gone ? h('div', { class: 'pl-void' }, side === 'after' ? '这个页面在改动后被删除了' : '改动前没有这个页面') : renderWF(p.root, p, { side: side, ctx: 'play', parentLayout: 'col' });
-  const frame = h('div', { class: 'pl-frame' + (P.marks ? ' marks' : ''), id: 'pl-frame', style: { width: (Number(p.width) || 1280) + 'px' } },
+  const replica = gone ? null : playReplicaBody(p, side);
+  const body = gone ? h('div', { class: 'pl-void' }, side === 'after' ? '这个页面在改动后被删除了' : '改动前没有这个页面') : (replica || renderWF(p.root, p, { side: side, ctx: 'play', parentLayout: 'col' }));
+  const frame = h('div', { class: 'pl-frame' + (P.marks ? ' marks' : '') + (replica ? ' has-replica' : ''), id: 'pl-frame', 'data-play': '1', style: { width: (Number(p.width) || 1280) + 'px' } },
     h('div', { class: 'pl-fh' }, h('span', { class: 'dot dot-' + pageStatus(p) }), pageName(p), p.route ? h('span', { class: 'route' }, p.route) : null),
     h('div', { class: 'pl-fb' }, body),
     P.ovs.map((id) => playOverlay(id, side)).filter(Boolean));
