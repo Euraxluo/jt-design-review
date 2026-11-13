@@ -1121,6 +1121,28 @@ function collectFns(n, side) {
   return out;
 }
 function detailRender(n, p, side, whole) {
+  // 复刻页优先: 详情面板里直接展示该侧复刻小图(视觉与画布一致), 高亮当前单元锚点
+  const replicaHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
+  if (replicaHtml) {
+    const uid = ui.unit || n.id;
+    const mini = h('div', { class: 'dt-replica' },
+      h('div', { class: 'dt-replica-b', innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml }));
+    // 高亮命中当前单元的锚点, 其余淡化
+    requestAnimationFrame(() => {
+      if (!mini.isConnected) return;
+      const box = mini.querySelector('.dt-replica-b');
+      if (!box) return;
+      box.querySelectorAll('[data-replica-unit]').forEach((el) => {
+        // 命中: 自身或任一祖先锚点指向当前单元
+        let e2 = el, match = false;
+        while (e2 && e2.getAttribute) { if (e2.getAttribute('data-replica-unit') === uid) { match = true; break; } e2 = e2.parentElement && e2.parentElement.closest ? e2.parentElement.closest('[data-replica-unit]') : null; }
+        el.classList.add(match ? 'dt-hit' : 'dt-dim');
+      });
+      const t = box.querySelector('.dt-hit');
+      if (t && t.scrollIntoView) t.scrollIntoView({ block: 'center' });
+    });
+    return mini;
+  }
   const r = renderWF(n, p, { side: side, ctx: 'detail', parentLayout: 'col', whole: !!whole, depth: 0 });
   return r ? h('div', { class: 'dt-render', 'data-page': p.id }, r) : null;
 }
