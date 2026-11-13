@@ -1401,7 +1401,7 @@ function fitPlay() {
 
 // ------------------------------------------------------------------ datachanges / middleware (before/after diff 双栏, 同后端变化模式)
 const DB_KINDS = { db: '数据库', table: '表' };
-const MW_KINDS = { mw: '中间件', topic: 'Topic', cache: '缓存', egress: '出站端点', job: '定时任务', none: '不引入' };
+const MW_KINDS = { mw: '中间件', topic: 'Topic', cache: '缓存', egress: '出站端点', ingress: '入站端点', job: '定时任务', ratelimit: '限流', circuit: '熔断', metrics: '指标', alert: '告警', trace: '追踪', decision: '决策' };
 function renderDataChanges() {
   const mods = S.spec.datachanges || [];
   const out = h('div', { class: 'be' });
@@ -1507,12 +1507,25 @@ function dbBox(m, side) {
 function renderMiddleware() {
   const mods = S.spec.middleware || [];
   const out = h('div', { class: 'be' });
-  if (!mods.length) out.append(h('div', { class: 'empty' }, '没有中间件变更。'));
-  else out.append(h('div', { class: 'compare' }, mwSide('before'), mwSide('after')));
+  if (!mods.length) { out.append(h('div', { class: 'empty' }, '没有中间件变更。')); return out; }
+  const dec = mods.filter((m) => m.kind === 'decision');
+  const real = mods.filter((m) => m.kind !== 'decision');
+  let eN = 0, jN = 0;
+  real.forEach((m) => (m.items || []).forEach((i) => { if (i.kind === 'egress' || i.kind === 'ingress') eN++; if (i.kind === 'job') jN++; }));
+  out.append(h('div', { class: 'db-bar' },
+    h('span', { class: 'db-sum' }, '净变更: ', h('b', null, '+' + eN + ' 端点'), ' · ', h('b', null, '+' + jN + ' 任务'), ' · ', h('b', null, '+0 新部署单元'), ' · 0 新中间件组件')));
+  dec.forEach((m) => {
+    out.append(h('div', { class: 'mw-decision card' },
+      h('div', { class: 'be-head' }, h('span', { class: 'chip' }, '决策记录'), h('h3', null, m.name), m.note ? h('span', { class: 'muted' }, m.note) : null),
+      h('div', { class: 'mod-items' }, (m.items || []).map((it) => h('div', { class: 'be-item' },
+        h('span', { class: 'chip sm' }, '决策'), h('code', null, it.name || ''),
+        it.note ? h('span', { class: 'be-note' }, it.note) : null)))));
+  });
+  out.append(h('div', { class: 'compare' }, mwSide('before', real), mwSide('after', real)));
   return out;
 }
-function mwSide(side) {
-  const mods = S.spec.middleware.filter((m) => visible(m, side));
+function mwSide(side, preFiltered) {
+  const mods = (preFiltered || S.spec.middleware).filter((m) => visible(m, side));
   return h('div', { class: 'side side-' + side }, h('div', { class: 'side-t' }, side === 'before' ? '改动前 · 现有组件' : '改动后 · 变更结果'),
     h('div', { class: 'frame be-frame' }, mods.length ? mods.map((m) => mwBox(m, side)) : h('div', { class: 'muted' }, '（无）')));
 }
