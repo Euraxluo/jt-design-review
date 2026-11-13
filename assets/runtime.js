@@ -1127,21 +1127,21 @@ function detailRender(n, p, side, whole) {
     const uid = ui.unit || n.id;
     const DW = 900; // 设计宽: 小图按此固有宽渲染, 再等比缩放到面板宽
     const inner = h('div', { class: 'dt-replica-b', style: { width: DW + 'px' }, innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml });
-    const mini = h('div', { class: 'dt-replica' }, inner);
-    // 等比缩放: 固有 900px → 面板宽, 高度按缩放补偿, 保持画布同比例
+    const fitbox = h('div', { class: 'dt-replica-fit' }, inner); // 定尺寸的缩放占位盒(宽=面板宽, 高=内容高×s)
+    const mini = h('div', { class: 'dt-replica' }, fitbox);
     const fitScale = () => {
       if (!mini.isConnected) return;
       const avail = (mini.clientWidth || 460) - 8;
       const s = Math.min(1, avail / DW);
       inner.style.transform = 'scale(' + s + ')';
       inner.style.transformOrigin = 'top left';
-      mini.style.height = 'auto';
+      inner.style.position = 'absolute';
+      inner.style.top = '0'; inner.style.left = '0';
+      fitbox.style.position = 'relative';
+      fitbox.style.width = '100%';
       const naturalH = inner.scrollHeight;
-      mini.style.maxHeight = 'none';
-      // 容器高度 = 内容高×s(上限 60vh), 超出内部滚动
-      const capH = Math.round(window.innerHeight * 0.6);
-      const needH = Math.round(naturalH * s) + 8;
-      mini.style.height = Math.min(needH, capH) + 'px';
+      fitbox.style.height = Math.round(naturalH * s) + 'px';
+      mini.style.maxHeight = Math.round(window.innerHeight * 0.6) + 'px';
       inner.dataset.scale = String(s);
       const t = inner.querySelector('.dt-hit');
       if (t && t.scrollIntoView) t.scrollIntoView({ block: 'center' });
