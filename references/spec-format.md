@@ -200,3 +200,11 @@ action：
 
 ## middleware[]（中间件变更 tab）
 模块：`{ id, name, change, note, items: [{ id, name, kind: topic|cache|egress|job, change, config, note }] }`。
+
+## 复刻变更标注（data-replica-unit）
+
+- 复刻 HTML 里变更元素挂 `data-replica-unit="<spec 节点 id>"`（节点本身或其最外层变更祖先的 id 均可，build 会用 unitOf 换算）
+- build.mjs 静态注入 `data-unit-n`（真实编号）+ `data-unit-chg`（颜色）+ `data-unit-chg-zh`（中文类型：修改/新增/删除）——徽标用 CSS 伪元素渲染，零 DOM 注入
+- **禁止**在 HTML 里手写编号（data-n）或变更色 class——spec 变更后 rebuild 自动重排，手写必漂移
+- before 侧也要给对应现状元素挂锚点（详情面板"改动前"小图的高亮定位依赖它）
+- 绑定错误会在构建时报 `data-unit-miss`（阻断）

@@ -51,6 +51,11 @@ node $SKILL/scripts/embed.mjs <preview.html>
 - change 值合法 / before 类型 / unchanged+before（现状列清单）豁免警告
 
 **Playwright 必测清单**（历史踩坑都在这）：
+- 复刻徽标编号三方一致：图上徽标编号 == 左侧清单编号 == 点开详情标题编号（点 1/2/5 号各验一次）
+- 详情面板前后小图：单屏提取正确（点多屏页的两个单元各验一次）、等比无横向溢出（scrollW==clientW）、无纵向截断（frame 底缘 <= 容器底缘）、命中锚点高亮可见
+- 演示模式：复刻页渲染真实 UI（非抽象线框）、点控件→弹窗打开→点暗处关闭→换页→再交互，全程 0 pageerror；无复刻页回落抽象线框
+- Archify embed（若用）：iframe 内点节点→批注表单打开、点泳道大框→聚合信息（非"SVG 元素"）、导出 MD 可下载
+- 复刻 CSS 隔离：htmlCss 已包 @scope(.replica-scope)——检查工具自身布局未被复刻样式污染（body 背景色等）
 - 每个自定义 tab 可点且渲染（db: .be-tbl 行数；mw: topic 名出现；sysflow: iframe canvas≥2 或泳道 step 数）
 - 复刻 mark 点击 → `#inspector` 出现且内容含该单元 before/after
 - `data-kind=node` 点击 → inspector 显示 #id
@@ -75,3 +80,6 @@ node $SKILL/scripts/embed.mjs <preview.html>
 ## 6. 存档纪律
 
 每轮交付 git 提交；方案大改版前：旧版复制进 `archive/` + git tag（如 jt-integration-v1-20261112）+ 项目记忆记已确认决策。
+  - 复刻卡片网格必须 `repeat(3,minmax(0,1fr))`——`1fr` 的 min-content 被 nowrap 文本撑爆会溢出 frame 被裁（Atlassian 卡片曾超界 97-213px）
+  - 缩放分母用实测 offsetWidth（transform:none 后测），禁用常量 DW——布局宽与缩放比必须同源
+  - 单屏提取（pickScreenHtml）后才按 ratio 等比呈现；整份多屏 HTML 塞小图必然挤压截断
