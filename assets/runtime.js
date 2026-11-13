@@ -1516,19 +1516,19 @@ function renderMiddleware() {
     h('span', { class: 'db-sum' }, '净变更: ', h('b', null, '+' + eN + ' 端点'), ' · ', h('b', null, '+' + jN + ' 任务'), ' · ', h('b', null, '+0 新部署单元'), ' · 0 新中间件组件')));
   dec.forEach((m) => {
     out.append(h('div', { class: 'mw-decision card' },
-      h('div', { class: 'be-head' }, h('span', { class: 'chip' }, '决策记录'), h('h3', null, m.name), m.note ? h('span', { class: 'muted' }, m.note) : null),
+      h('div', { class: 'be-head', 'data-kind': 'be', 'data-id': m.id, 'data-side': 'after' }, h('span', { class: 'chip' }, '决策记录'), h('h3', null, m.name), m.note ? h('span', { class: 'muted' }, m.note) : null, cbadge('be', m.id)),
       h('div', { class: 'dec-items' }, (m.items || []).map((it) => {
-        // note 按 · 分割, 每段若含 ":" 则 label: value 行
         const segs = String(it.note || '').split('·').map((s) => s.trim()).filter(Boolean);
         const rows = segs.map((s) => {
           const i = s.indexOf(':');
           return i > 0 && i < 14 ? { k: s.slice(0, i), v: s.slice(i + 1).trim() } : { k: null, v: s };
         });
-        return h('div', { class: 'dec-item' },
-          h('div', { class: 'dec-name' }, h('span', { class: 'chip sm' }, '决策'), h('code', null, it.name || '')),
+        return h('div', { class: 'dec-item', 'data-kind': 'be', 'data-id': it.id, 'data-side': 'after' },
+          h('div', { class: 'dec-name' }, h('span', { class: 'chip sm' }, '决策'), h('code', null, it.name || ''), cbadge('be', it.id)),
           h('div', { class: 'dec-rows' }, rows.map((r) => h('div', { class: 'dec-row' },
             r.k ? h('span', { class: 'dec-k' }, r.k) : null, h('span', { class: 'dec-v' }, r.v)))));
-      }))));
+      }),
+      ui.mode === 'edit' ? h('button', { class: 'lnk', style: 'margin-top:6px', onclick: (e) => { e.stopPropagation(); mutate(() => opItemAdd(m.id)); } }, '+ 添加决策') : null)));
   });
   out.append(h('div', { class: 'compare' }, mwSide('before', real), mwSide('after', real)));
   return out;
