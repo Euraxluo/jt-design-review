@@ -440,7 +440,8 @@ function whereOf(t) {
   if (t.kind === 'page') { const p = pageById(t.id); return '页面「' + (p ? pageName(p) : t.id) + '」（整页）'; }
   if (t.kind === 'flow') { const f = flowById(t.id); return '流程「' + (f ? f.name : t.id) + '」（整个流程）'; }
   if (t.kind === 'step') { const f = flowById(t.flow); const s = f && f.steps.find((x) => x.id === t.id); return '流程「' + (f ? f.name : t.flow) + '」› ' + sideT + ' › 步骤' + (s ? stepLabel(view(s, t.side)) : '') + ' #' + t.id; }
-  if (t.kind === 'be') { const f = findBe(t.id); if (!f) return '后端 #' + t.id; return '后端 › ' + sideT + ' › 模块「' + f.m.name + '」' + (f.item ? ' › 「' + f.item.name + '」' : '') + ' #' + t.id; }
+  if (t.kind === 'becol') { const tid = String(t.id).split('.')[0]; const colName = String(t.id).slice(tid.length + 1); const f = findBe(tid); return (f ? '数据库 › 「' + (f.item ? (f.item.table || f.item.name) : f.m.name) + '」' : '') + ' › 列「' + colName + '」 #' + t.id; }
+  if (t.kind === 'be') { const f = findBe(t.id); if (!f) return '后端 #' + t.id; return (S.spec.datachanges && S.spec.datachanges.some((m) => m.id === t.id) ? '数据库' : S.spec.middleware && S.spec.middleware.some((m) => m.id === t.id) ? '中间件' : '后端') + ' › ' + sideT + ' › 模块「' + f.m.name + '」' + (f.item ? ' › 「' + (f.item.table || f.item.name) + '」' : '') + ' #' + t.id; }
   return '整体';
 }
 function commentCount(kind, id, side) { return S.comments.filter((c) => c.target.kind === kind && c.target.id === id && (c.target.side || '') === (side || '')).length; }
@@ -680,7 +681,7 @@ function renderTabs() {
   const mwN = (sp.middleware || []).length;
   const tabs = [['canvas', '界面改动', String(UNITS.length)], ['flows', '流程变化', fc + '/' + sp.flows.length]];
   if (sfN) tabs.push(['sysflow', '系统流程', String(sfN)]);
-  if (dbN) tabs.push(['db', '数据库变更', String(dbN)]);
+  if (dbN) { let dbChg = 0; (S.spec.datachanges || []).forEach((m) => (m.items || []).forEach((i) => { if (i.change === 'added' || i.change === 'modified' || i.change === 'removed') dbChg++; })); tabs.push(['db', '数据库变更', dbChg + ' 表变更']); }
   if (mwN) tabs.push(['mw', '中间件变更', String(mwN)]);
   tabs.push(['backend', '后端变化', bc + '/' + sp.backend.length], ['feedback', '反馈', String(S.comments.length + S.ops.length)]);
   return h('nav', { class: 'tabs' }, tabs.map((t) => h('button', { class: ui.tab === t[0] ? 'on' : null, onclick: () => setTab(t[0]) }, t[1], t[2] ? h('span', { class: 'n' }, t[2]) : null)));
@@ -1404,12 +1405,22 @@ const MW_KINDS = { mw: '中间件', topic: 'Topic', cache: '缓存', egress: '�
 function renderDataChanges() {
   const mods = S.spec.datachanges || [];
   const out = h('div', { class: 'be' });
-  if (!mods.length) out.append(h('div', { class: 'empty' }, '没有数据库变更。'));
-  else out.append(h('div', { class: 'compare' }, dbSide('before'), dbSide('after')));
+  if (!mods.length) { out.append(h('div', { class: 'empty' }, '没有数据库变更。')); return out; }
+  // 摘要: 自动统计口径
+  let chgT = 0, addT = 0, totT = 0;
+  mods.forEach((m) => (m.items || []).forEach((it) => { totT++; if (it.change === 'added') addT++; else if (it.change === 'modified' || it.change === 'removed') chgT++; }));
+  ui.dbFilter = ui.dbFilter || 'changed';
+  const bar = h('div', { class: 'db-bar' },
+    h('span', { class: 'db-sum' }, h('b', null, addT + ' 新增'), ' · ', h('b', null, chgT + ' 修改'), ' · 其余 ' + (totT - addT - chgT) + ' 张确认不动（共 ' + totT + ' 张）'),
+    h('span', { class: 'db-filters' },
+      ['changed', 'all'].map((f) => h('button', { class: 'seg' + (ui.dbFilter === f ? ' on' : ''), onclick: () => { ui.dbFilter = f; render(); } }, f === 'changed' ? '只看变更 (' + (addT + chgT) + ')' : '全部表 (' + totT + ')'))));
+  out.append(bar);
+  const filtered = mods.map((m) => ({ ...m, items: ui.dbFilter === 'changed' ? (m.items || []).filter((i) => i.change === 'added' || i.change === 'modified' || i.change === 'removed') : m.items }));
+  out.append(h('div', { class: 'compare' }, dbSide('before', filtered), dbSide('after', filtered)));
   return out;
 }
-function dbSide(side) {
-  const mods = S.spec.datachanges.filter((m) => visible(m, side));
+function dbSide(side, preFiltered) {
+  const mods = (preFiltered || S.spec.datachanges).filter((m) => visible(m, side));
   return h('div', { class: 'side side-' + side }, h('div', { class: 'side-t' }, side === 'before' ? '改动前 · 现有全部表(代码盘点)' : '改动后 · 变更结果'),
     h('div', { class: 'frame be-frame' }, mods.length ? mods.map((m) => dbBox(m, side)) : h('div', { class: 'muted' }, '（无）')));
 }
@@ -1426,11 +1437,14 @@ function dbBox(m, side) {
         chgTag(it, side), h('span', { class: 'chip sm' }, '表'), h('code', null, iv.table || iv.name || ''),
         iv.ddl ? h('pre', { class: 'ddl' }, iv.ddl) : null,
         (iv.columns && !Array.isArray(iv.columns)) ? h('div', { class: 'cols' }, h('div', { class: 'col-line' }, h('span', { class: 'col-sign' }, '·'), h('span', { class: 'muted' }, String(iv.columns)))) :
-        (iv.columns || []).length ? h('div', { class: 'cols' }, (iv.columns || []).map((c) => {
+        (Array.isArray(iv.columns) && iv.columns.some((c) => String(c.name).startsWith('▸'))) ? h('div', { class: 'behav-banner' },
+          (() => { const bc = iv.columns.find((c) => String(c.name).startsWith('▸')); return [h('div', { class: 'behav-t' }, '行为变更'),
+            h('div', { class: 'behav-d' }, h('span', { class: 'col-old' }, String(bc.before || '—')), h('span', { class: 'col-arrow' }, ' → '), h('span', { class: 'col-new' }, bc.note || ''))]; })()) :
+        (iv.columns || []).filter((c) => !String(c.name).startsWith('▸')).length ? h('div', { class: 'cols' }, (iv.columns || []).filter((c) => !String(c.name).startsWith('▸')).map((c) => {
           const cv = side === 'before' && c.change === 'added' ? null : (side === 'after' && c.change === 'removed' ? null : c);
           if (!cv) return null;
           const oldVal = (side === 'after' && cv.change === 'modified' && c.before !== undefined) ? String(typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) : null;
-          return h('div', { class: 'col-line ' + (cv.change || '') },
+          return h('div', { class: 'col-line ' + (cv.change || ''), 'data-kind': 'becol', 'data-id': (it.id || '') + '.' + (cv.name || ''), 'data-side': side, title: '点击批注这一列' },
             h('span', { class: 'col-sign' }, cv.change === 'added' ? '+' : cv.change === 'removed' ? '−' : cv.change === 'modified' ? '~' : '·'),
             h('code', null, cv.name), cv.type ? h('span', { class: 'muted' }, cv.type) : null,
             oldVal ? h('span', null, h('span', { class: 'col-old' }, oldVal), h('span', { class: 'col-arrow' }, ' → '), h('span', { class: 'col-new' }, (cv.note || ''))) :
@@ -1625,6 +1639,7 @@ function renderInspector() {
   else if (s.kind === 'page') body = inspPage(s);
   else if (s.kind === 'flow') body = inspFlow(s);
   else if (s.kind === 'step') body = inspStep(s);
+  else if (s.kind === 'becol') body = inspBeCol(s);
   else if (s.kind === 'be') body = inspBe(s);
   if (!body) return null;
   return h('aside', { class: 'inspector', id: 'inspector' },
@@ -1767,6 +1782,20 @@ function inspStep(s) {
   out.push(commentBox({ kind: 'step', flow: f.id, id: st.id, side: s.side }));
   return out;
 }
+function inspBeCol(s) {
+  const tid = String(s.id).split('.')[0]; const colName = String(s.id).slice(tid.length + 1);
+  const f = findBe(tid); if (!f || !f.item) return null;
+  const t = f.item.table || f.item.name;
+  const col = (f.item.columns || []).find((c) => c.name === colName);
+  const w = h('div', { class: 'insp-be' },
+    h('div', { class: 'fld' }, h('span', null, '表'), h('code', null, t)),
+    h('div', { class: 'fld' }, h('span', null, '列'), h('code', null, colName)),
+    col && col.type ? h('div', { class: 'fld' }, h('span', null, '类型'), h('span', null, col.type)) : null,
+    col && col.change && col.change !== 'unchanged' ? h('div', { class: 'fld' }, h('span', null, '变更'), h('span', null, col.change)) : null,
+    col && col.note ? h('div', { class: 'mod-note' }, col.note) : null,
+    f.item.note ? h('div', { class: 'mod-note' }, f.item.note) : null);
+  return w;
+}
 function inspBe(s) {
   const fb = findBe(s.id); if (!fb) return null;
   const o = fb.item || fb.m, isItem = !!fb.item;
@@ -1796,7 +1825,11 @@ function inspBe(s) {
 function jump(t) {
   if (t.kind === 'node' || t.kind === 'page') { ui.tab = 'canvas'; ui.page = t.page || t.id; ui.unit = t.kind === 'node' ? unitOf(t.page, t.id) : (UNIT_BY.has(t.id) ? t.id : null); }
   else if (t.kind === 'flow' || t.kind === 'step') ui.tab = 'flows';
-  else if (t.kind === 'be') ui.tab = 'backend';
+  else if (t.kind === 'becol' || t.kind === 'be') {
+    const lookup = t.kind === 'becol' ? String(t.id).split('.')[0] : t.id;
+    const pool = [['backend', S.spec.backend], ['db', S.spec.datachanges], ['mw', S.spec.middleware]].find(([, arr]) => Array.isArray(arr) && arr.some((m) => m.id === lookup || (m.items || []).some((i) => i.id === lookup)));
+    ui.tab = pool ? pool[0] : 'backend';
+  }
   ui.sel = Object.assign({}, t);
   validateSel(); save(); render(); scrollToSel();
 }
