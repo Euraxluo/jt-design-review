@@ -61,6 +61,18 @@ const shell = `
 
   function label(el){
     if (!el) return '';
+    // 泳道/boundary 大框(自身无文本): 聚合框内所有节点文本
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    if (r && r.width > 150 && (el.textContent || '').replace(/\s+/g, ' ').trim().length < 4) {
+      var inside = [];
+      document.querySelectorAll('svg g').forEach(function(g2){
+        var t = (g2.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!t || t.length > 40 || !g2.getBoundingClientRect) return;
+        var b2 = g2.getBoundingClientRect();
+        if (b2.width && b2.height && b2.left >= r.left - 4 && b2.right <= r.right + 4 && b2.top >= r.top - 4 && b2.bottom <= r.bottom + 4) inside.push(t);
+      });
+      if (inside.length) return '泳道/分组框（含 ' + inside.length + ' 个节点: ' + inside.slice(0, 4).join(' · ') + (inside.length > 4 ? ' …' : '') + '）';
+    }
     var cur = el, best = null, bestLen = 0;
     for (var i = 0; i < 4 && cur; i++) {
       var t = (cur.textContent || '').replace(/\s+/g, ' ').trim();
@@ -72,6 +84,7 @@ const shell = `
     var id = el2.getAttribute('data-id') || el2.getAttribute('id') || '';
     return (txt || 'SVG 元素') + (id ? ' #' + id : '');
   }
+
   function render(){
     list.innerHTML = '';
     store.forEach(function(f, i){
