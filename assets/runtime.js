@@ -1125,8 +1125,7 @@ function detailRender(n, p, side, whole) {
   const replicaHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
   if (replicaHtml) {
     const uid = ui.unit || n.id;
-    const DW = 900; // 设计宽: 小图按此固有宽渲染, 再等比缩放到面板宽
-    const inner = h('div', { class: 'dt-replica-b replica-scope', style: { width: DW + 'px' }, innerHTML: (p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '') + replicaHtml });
+    const inner = h('div', { class: 'dt-replica-b replica-scope', style: { width: '860px' }, innerHTML: (p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '') + replicaHtml });
     const fitbox = h('div', { class: 'dt-replica-fit' }, inner); // 定尺寸的缩放占位盒(宽=面板宽, 高=内容高×s)
     const mini = h('div', { class: 'dt-replica' }, fitbox);
     const fitScale = () => {
@@ -1137,8 +1136,10 @@ function detailRender(n, p, side, whole) {
       inner.style.top = '0'; inner.style.left = '0';
       inner.style.transform = 'none';
       const naturalH = inner.scrollHeight || 1;
+      // 实测内容固有宽(消灭双源: 缩放分母=布局宽, transform 不影响 offsetWidth)
+      const W = Math.max(1, inner.offsetWidth);
       // 整页完整可见: 同时适配宽度与高度(取更小缩放比), 不截断
-      const s = Math.min(1, avail / DW, capH / naturalH);
+      const s = Math.min(1, avail / W, capH / naturalH);
       inner.style.transform = 'scale(' + s + ')';
       inner.style.transformOrigin = 'top left';
       fitbox.style.position = 'relative';
@@ -1155,6 +1156,12 @@ function detailRender(n, p, side, whole) {
       }
     };
     requestAnimationFrame(fitScale);
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => fitScale());
+      ro.observe(mini);
+      if (mini.parentElement) ro.observe(mini.parentElement); // 面板/列宽变化时重算缩放
+      setTimeout(() => ro.disconnect(), 15000);
+    }
     // 高亮命中当前单元的锚点, 其余淡化
     requestAnimationFrame(() => {
       if (!mini.isConnected) return;
