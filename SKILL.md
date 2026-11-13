@@ -58,6 +58,8 @@ node $SKILL/scripts/apply-feedback.mjs .smyw/<dir>/feedback-v<N>.md .smyw/<dir>/
 
 ## 硬性约束
 
+- **中间件最小化**：技术方案默认不引入新中间件（Kafka/Redis/消息队列等）。能复用现有机制就不新增组件（如审批结果同步：HTTP 回调为主 + DB 轮询兜底，不上消息总线）。只有用户明确要求时才引入，且必须在「中间件变更」tab 给出选型对比（候选/取舍/为什么不复用现有），并在 note 标注"用户要求引入"
+- **数据库变更必须先盘点后变更**：datachanges 只允许出现真实存在的表（表名/字段以代码盘点为准：kinm CRD 表=Kind 全小写；gateway GORM 表=snake_case 复数），逐表标注 新增/修改/停用/不动；"不动"的表也要列出（防遗漏），禁止拍脑袋编表名
 - 单文件离线：所有截图/Excalidraw 包必须 base64/打包内嵌，禁止外链 CDN 依赖运行时资源
 - 嵌套转义：复刻 HTML 或 Excalidraw HTML 进入 spec JSON 时，`</` 必须转义为 `</`（JSON `\u002f`），否则外层 `<script>` 被提前终止——一律走 `embed.mjs`，不要手拼
 - runtime 是二开版：`h()` 支持 `innerHTML`；pageGroup 支持 htmlBefore/htmlAfter/sysflow embed/db/mw tabs——升级上游 smyw 前先读 assets-notes.md
