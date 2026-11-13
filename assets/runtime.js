@@ -1127,6 +1127,7 @@ function detailRender(n, p, side, whole) {
     const uid = ui.unit || n.id;
     const mini = h('div', { class: 'dt-replica' },
       h('div', { class: 'dt-replica-b', innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml }));
+    // 宽度自适应面板(复刻本身 flex 自适应); 高度受限时内部滚动并定位到命中元素
     // 高亮命中当前单元的锚点, 其余淡化
     requestAnimationFrame(() => {
       if (!mini.isConnected) return;

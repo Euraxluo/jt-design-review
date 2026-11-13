@@ -565,8 +565,9 @@ input,select,textarea{border:1px solid #777}
 .pl-frame[data-play] [data-unit-n]::after{display:none}
 
 /* 详情面板复刻小图 */
-.dt-replica{max-height:420px;overflow:auto;border:1px solid #e5e9ee;border-radius:8px;background:#fff}
+.dt-replica{max-height:60vh;min-height:200px;overflow:auto;border:1px solid #e5e9ee;border-radius:8px;background:#fff;padding:4px}
 .dt-replica-b{pointer-events:none}
+.dt-replica .dt-hit{scroll-margin:80px}
 .dt-replica [data-replica-unit].dt-hit{outline:3px solid #4c6ef5!important;outline-offset:2px}
 .dt-replica [data-replica-unit].dt-hit::after{background:#4c6ef5!important}
 .dt-replica [data-replica-unit].dt-dim{opacity:.45}
