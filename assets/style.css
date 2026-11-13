@@ -488,3 +488,14 @@ input,select,textarea{border:1px solid #777}
 .be-tbl td{padding:7px 8px;border-bottom:1px solid #eef1f4;vertical-align:top}
 .col-chg{font-size:11.5px;line-height:1.7}
 .col-chg.added{color:#157f56}.col-chg.removed{color:#c92a2a;text-decoration:line-through}.col-chg.modified{color:#8d6708}
+
+/* db/mw diff */
+.tbl-item{flex-direction:column;align-items:stretch;gap:3px}
+.ddl{font-family:ui-monospace,monospace;font-size:10.5px;background:#f6f8fa;border:1px solid #e5e9ee;border-radius:6px;padding:6px 8px;white-space:pre-wrap;margin:3px 0;line-height:1.5}
+.cols{display:flex;flex-direction:column;gap:1px;margin:2px 0}
+.col-line{display:flex;gap:6px;align-items:baseline;font-size:11.5px;line-height:1.65}
+.col-sign{font-weight:800;width:12px;flex-shrink:0}
+.col-line.added .col-sign{color:#157f56}.col-line.removed{color:#c92a2a;text-decoration:line-through}.col-line.modified .col-sign{color:#8d6708}
+.col-note{color:#8b949e;font-size:10.5px}
+.idx{font-size:11px;color:#57606a;margin-top:2px}
+.cfg{font-size:10.5px;color:#57606a}

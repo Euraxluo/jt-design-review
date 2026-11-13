@@ -1398,47 +1398,76 @@ function fitPlay() {
 
 
 
-// ------------------------------------------------------------------ datachanges (数据库变更 tab)
+// ------------------------------------------------------------------ datachanges / middleware (before/after diff 双栏, 同后端变化模式)
+const DB_KINDS = { db: '数据库', table: '表' };
+const MW_KINDS = { mw: '中间件', topic: 'Topic', cache: '缓存', egress: '出站端点', job: '定时任务', none: '不引入' };
 function renderDataChanges() {
   const mods = S.spec.datachanges || [];
   const out = h('div', { class: 'be' });
   if (!mods.length) out.append(h('div', { class: 'empty' }, '没有数据库变更。'));
-  else mods.forEach((m) => {
-    const st = modStatus(m);
-    out.append(h('div', { class: 'be-mod card' },
-      h('div', { class: 'be-head', 'data-kind': 'module', 'data-id': m.id }, h('span', { class: 'dot dot-' + st }), h('h3', null, m.name), chgChip(st), m.note ? h('span', { class: 'muted' }, m.note) : null, cbadge('module', m.id)),
-      h('table', { class: 'be-tbl' },
-        h('tr', null, ['表', '变更', '字段/结构', '索引', '说明'].map((x) => h('th', null, x))),
-        (m.items || []).map((it) => h('tr', { 'data-kind': 'item', 'data-id': it.id, class: chgClass(it, 'after') },
-          h('td', null, h('code', null, it.table || it.name || '')),
-          h('td', null, chgChip(it.change || 'added')),
-          h('td', null, (it.columns || []).map ? (it.columns || []).map((c) => h('div', { class: 'col-chg ' + (c.change || '') }, (c.change === 'removed' ? '− ' : c.change === 'modified' ? '~ ' : '+ '), h('code', null, c.name), c.type ? h('span', { class: 'muted' }, ' ' + c.type) : null)).map(x => x) : String(it.columns || '')),
-          h('td', null, it.indexes || '-'),
-          h('td', null, it.note || ''))))));
-  });
+  else out.append(h('div', { class: 'compare' }, dbSide('before'), dbSide('after')));
   return out;
 }
-// ------------------------------------------------------------------ middleware (中间件变更 tab)
+function dbSide(side) {
+  const mods = S.spec.datachanges.filter((m) => visible(m, side));
+  return h('div', { class: 'side side-' + side }, h('div', { class: 'side-t' }, side === 'before' ? '改动前 · 现有全部表(代码盘点)' : '改动后 · 变更结果'),
+    h('div', { class: 'frame be-frame' }, mods.length ? mods.map((m) => dbBox(m, side)) : h('div', { class: 'muted' }, '（无）')));
+}
+function dbBox(m, side) {
+  const v = view(m, side);
+  const items = m.items.filter((i) => visible(i, side));
+  return h('div', { class: 'mod ' + chgClass(m, side), 'data-kind': 'be', 'data-id': m.id, 'data-side': side, title: m.note || null },
+    chgTag(m, side),
+    h('div', { class: 'mod-h' }, h('span', { class: 'chip' }, DB_KINDS[v.kind || 'db'] || v.kind || '库'), h('b', null, v.name), v.engine ? h('span', { class: 'chip sm' }, v.engine) : null),
+    v.note ? h('div', { class: 'mod-note' }, v.note) : null,
+    h('div', { class: 'mod-items' }, items.map((it) => {
+      const iv = view(it, side);
+      return h('div', { class: 'be-item tbl-item ' + chgClass(it, side), 'data-kind': 'be', 'data-id': it.id, 'data-side': side, title: (iv.note || it.note) || null },
+        chgTag(it, side), h('span', { class: 'chip sm' }, '表'), h('code', null, iv.table || iv.name || ''),
+        iv.ddl ? h('pre', { class: 'ddl' }, iv.ddl) : null,
+        (iv.columns || []).length ? h('div', { class: 'cols' }, (iv.columns || []).map((c) => {
+          const cv = side === 'before' && c.change === 'added' ? null : (side === 'after' && c.change === 'removed' ? null : c);
+          if (!cv) return null;
+          return h('div', { class: 'col-line ' + (cv.change || '') },
+            h('span', { class: 'col-sign' }, cv.change === 'added' ? '+' : cv.change === 'removed' ? '−' : cv.change === 'modified' ? '~' : '·'),
+            h('code', null, cv.name), cv.type ? h('span', { class: 'muted' }, cv.type) : null,
+            side === 'before' && cv.change === 'modified' && c.before ? h('span', { class: 'muted' }, '（' + (typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) + '）') : null,
+            cv.note ? h('span', { class: 'col-note' }, cv.note) : null);
+        }).filter(Boolean)) : null,
+        iv.indexes && iv.indexes !== '-' ? h('div', { class: 'idx' }, '索引: ', h('code', null, iv.indexes)) : null,
+        (iv.note && !iv.columns) || (iv.note && side === 'after') ? h('span', { class: 'be-note' }, iv.note || it.note) : null,
+        cbadge('be', it.id, side));
+    })),
+    cbadge('be', m.id, side));
+}
 function renderMiddleware() {
   const mods = S.spec.middleware || [];
   const out = h('div', { class: 'be' });
   if (!mods.length) out.append(h('div', { class: 'empty' }, '没有中间件变更。'));
-  else mods.forEach((m) => {
-    const st = modStatus(m);
-    out.append(h('div', { class: 'be-mod card' },
-      h('div', { class: 'be-head', 'data-kind': 'module', 'data-id': m.id }, h('span', { class: 'dot dot-' + st }), h('h3', null, m.name), chgChip(st), m.note ? h('span', { class: 'muted' }, m.note) : null, cbadge('module', m.id)),
-      h('table', { class: 'be-tbl' },
-        h('tr', null, ['组件', '类型', '变更', '配置/参数', '说明'].map((x) => h('th', null, x))),
-        (m.items || []).map((it) => h('tr', { 'data-kind': 'item', 'data-id': it.id, class: chgClass(it, 'after') },
-          h('td', null, h('code', null, it.name || '')),
-          h('td', null, it.kind || '-'),
-          h('td', null, chgChip(it.change || 'added')),
-          h('td', null, h('code', { style: 'font-size:11px' }, it.config || '-')),
-          h('td', null, it.note || ''))))));
-  });
+  else out.append(h('div', { class: 'compare' }, mwSide('before'), mwSide('after')));
   return out;
 }
-
+function mwSide(side) {
+  const mods = S.spec.middleware.filter((m) => visible(m, side));
+  return h('div', { class: 'side side-' + side }, h('div', { class: 'side-t' }, side === 'before' ? '改动前 · 现有组件' : '改动后 · 变更结果'),
+    h('div', { class: 'frame be-frame' }, mods.length ? mods.map((m) => mwBox(m, side)) : h('div', { class: 'muted' }, '（无）')));
+}
+function mwBox(m, side) {
+  const v = view(m, side);
+  const items = m.items.filter((i) => visible(i, side));
+  return h('div', { class: 'mod ' + chgClass(m, side), 'data-kind': 'be', 'data-id': m.id, 'data-side': side, title: m.note || null },
+    chgTag(m, side),
+    h('div', { class: 'mod-h' }, h('span', { class: 'chip' }, MW_KINDS[v.kind || 'mw'] || v.kind || '组件'), h('b', null, v.name)),
+    v.note ? h('div', { class: 'mod-note' }, v.note) : null,
+    h('div', { class: 'mod-items' }, items.map((it) => {
+      const iv = view(it, side);
+      return h('div', { class: 'be-item ' + chgClass(it, side), 'data-kind': 'be', 'data-id': it.id, 'data-side': side },
+        chgTag(it, side), h('span', { class: 'chip sm' }, MW_KINDS[iv.kind] || iv.kind || ''), h('code', null, iv.name || ''),
+        iv.config ? h('code', { class: 'cfg' }, iv.config) : null,
+        (iv.note || it.note) ? h('span', { class: 'be-note' }, iv.note || it.note) : null, cbadge('be', it.id, side));
+    })),
+    cbadge('be', m.id, side));
+}
 // ------------------------------------------------------------------ sysflows (系统流程 tab)
 function renderSysFlows() {
   const sfs = S.spec.sysflows || [];
