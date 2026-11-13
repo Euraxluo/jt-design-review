@@ -979,10 +979,10 @@ function ensureReplicaNode(p, el) {
 }
 
 function htmlReplica(p) {
-  const styleTag = p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '';
+  const styleTag = p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '';
   const wrap = (label, html, cls) => html ? h('div', { class: 'cv-replica ' + (cls || '') },
     h('div', { class: 'cv-replica-t' }, label),
-    h('div', { class: 'cv-replica-b' }, h('div', { innerHTML: styleTag + html }))) : null;
+    h('div', { class: 'cv-replica-b replica-scope' }, h('div', { innerHTML: styleTag + html }))) : null;
   const root = h('div', { class: 'cv-replica-wrap',
     'data-replica-page': p.id,
     onmouseover: (ev) => {
@@ -1126,7 +1126,7 @@ function detailRender(n, p, side, whole) {
   if (replicaHtml) {
     const uid = ui.unit || n.id;
     const DW = 900; // 设计宽: 小图按此固有宽渲染, 再等比缩放到面板宽
-    const inner = h('div', { class: 'dt-replica-b', style: { width: DW + 'px' }, innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml });
+    const inner = h('div', { class: 'dt-replica-b replica-scope', style: { width: DW + 'px' }, innerHTML: (p.htmlCss ? '<style>@scope(.replica-scope){' + p.htmlCss + '}</style>' : '') + replicaHtml });
     const fitbox = h('div', { class: 'dt-replica-fit' }, inner); // 定尺寸的缩放占位盒(宽=面板宽, 高=内容高×s)
     const mini = h('div', { class: 'dt-replica' }, fitbox);
     const fitScale = () => {
