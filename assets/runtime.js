@@ -984,6 +984,7 @@ function htmlReplica(p) {
     h('div', { class: 'cv-replica-t' }, label),
     h('div', { class: 'cv-replica-b' }, h('div', { innerHTML: styleTag + html }))) : null;
   const root = h('div', { class: 'cv-replica-wrap',
+    'data-replica-page': p.id,
     onmouseover: (ev) => {
       if (ui.mode === 'edit') return;
       root.querySelectorAll('.rep-sel-hover').forEach((x) => x.classList.remove('rep-sel-hover'));
@@ -1000,7 +1001,38 @@ function htmlReplica(p) {
     } },
     wrap(p.htmlAfter ? '改动前（现状复刻）' : '', p.htmlBefore, 'before'),
     wrap(p.htmlAfter ? '改动后（V2）' : '', p.htmlAfter, 'after'));
+  requestAnimationFrame(() => drawReplicaOverlays(root, p));
   return root;
+}
+// 复刻锚点测量+叠框: 对复刻内 [data-replica-unit] 元素测位, 叠标准改动框(黄/绿/红+编号)
+function drawReplicaOverlays(wrapEl, p) {
+  if (!wrapEl.isConnected) return;
+  wrapEl.querySelectorAll('.rep-ov').forEach((x) => x.remove());
+  computeUnits();
+  const anchors = wrapEl.querySelectorAll('[data-replica-unit]');
+  if (!anchors.length) return;
+  const wrapRect = wrapEl.getBoundingClientRect();
+  // 同 unit 多锚点 → 合并包围盒为一个框
+  const boxes = new Map();
+  anchors.forEach((el) => {
+    const nid = el.getAttribute('data-replica-unit');
+    let u = UNITS.find((x) => x.page === p.id && x.id === nid) || UNITS.find((x) => x.page === p.id && String(x.n) === nid);
+    if (!u) { const uid = unitOf(p.id, nid); if (uid) u = UNITS.find((x) => x.page === p.id && x.id === uid); }
+    if (!u) return;
+    const r = el.getBoundingClientRect();
+    const box = { l: r.left - wrapRect.left, t: r.top - wrapRect.top, rgt: r.right - wrapRect.left, b: r.bottom - wrapRect.top };
+    if (!boxes.has(u.key)) boxes.set(u.key, { u, box });
+    else { const b = boxes.get(u.key).box; b.l = Math.min(b.l, box.l); b.t = Math.min(b.t, box.t); b.rgt = Math.max(b.rgt, box.rgt); b.b = Math.max(b.b, box.b); }
+  });
+  boxes.forEach(({ u, box }) => {
+    const ov = h('div', { class: 'rep-ov mk mk-' + u.change + ' mk-u', 'data-unit': u.key, style: {
+      position: 'absolute',
+      left: box.l + 'px', top: box.t + 'px',
+      width: Math.max(box.rgt - box.l, 14) + 'px', height: Math.max(box.b - box.t, 10) + 'px',
+    }, onclick: (ev) => { ev.stopPropagation(); focusUnit(u.key); } },
+      h('span', { class: 'u-num u-' + u.change }, String(u.n)));
+    wrapEl.appendChild(ov);
+  });
 }
 
 function pageGroup(p) {

@@ -544,3 +544,8 @@ input,select,textarea{border:1px solid #777}
 
 .dec-item{cursor:pointer}
 .dec-item:hover{border-color:#4c6ef5}
+
+/* 复刻叠框 */
+.cv-replica-wrap{position:relative}
+.rep-ov{z-index:400;cursor:pointer;border-radius:6px}
+.rep-ov:hover{filter:brightness(0.97)}
