@@ -1132,7 +1132,7 @@ function detailRender(n, p, side, whole) {
     const fitScale = () => {
       if (!mini.isConnected) return;
       const avail = (mini.clientWidth || 460) - 8;
-      const capH = Math.round(window.innerHeight * 0.72);
+      const capH = Math.round(window.innerHeight * 1.15); // 允许更高的等比视图, 面板内滚动浏览
       inner.style.position = 'absolute';
       inner.style.top = '0'; inner.style.left = '0';
       inner.style.transform = 'none';
@@ -1144,9 +1144,15 @@ function detailRender(n, p, side, whole) {
       fitbox.style.position = 'relative';
       fitbox.style.width = '100%';
       fitbox.style.height = Math.round(naturalH * s) + 'px';
-      // 完整展示: 不设高度上限, fitbox 已按缩放后高度占位
-      mini.style.maxHeight = 'none';
+      mini.style.maxHeight = Math.round(window.innerHeight * 0.66) + 'px'; // 面板内滚动
       inner.dataset.scale = String(s);
+      // 滚动到命中锚点
+      const t = inner.querySelector('.dt-hit');
+      if (t) {
+        const ts = parseFloat(String(s)) || 1;
+        const ty = (t.offsetTop || 0) * ts;
+        mini.scrollTop = Math.max(0, ty - mini.clientHeight / 2.4);
+      }
     };
     requestAnimationFrame(fitScale);
     // 高亮命中当前单元的锚点, 其余淡化
