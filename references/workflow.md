@@ -44,6 +44,12 @@ node $SKILL/scripts/build.mjs <spec>
 node $SKILL/scripts/embed.mjs <preview.html>
 ```
 
+**构建期静态检查（build.mjs 自动执行，出错阻断构建）**：
+- 全局 id 唯一（pages/flows/backend/**datachanges/middleware/sysflows** 跨池查重——历史 bug：中间件 h1-h6 与数据库历史表撞 id 导致 inspector 显示错条目）
+- 引用闭合：trigger / on.target / flow·sysflow 的 node 必须指向存在的 id（悬空引用=✖ 报错）
+- modified 条目必须带 before 或 note（否则 ⚠ 看不出改了什么）
+- change 值合法 / before 类型 / unchanged+before（现状列清单）豁免警告
+
 **Playwright 必测清单**（历史踩坑都在这）：
 - 每个自定义 tab 可点且渲染（db: .be-tbl 行数；mw: topic 名出现；sysflow: iframe canvas≥2 或泳道 step 数）
 - 复刻 mark 点击 → `#inspector` 出现且内容含该单元 before/after
@@ -56,6 +62,7 @@ node $SKILL/scripts/embed.mjs <preview.html>
   - Excalidraw 场景要 `JSON.stringify` 后再赋给 window 变量（不能塞对象字面量再 JSON.parse）
   - iframe srcdoc 里 inline script 闭合标签必须是真的 `</script>`（所以只在外层 JSON 转义，srcdoc 内还原）
   - headless Chrome 的 `--virtual-time-budget` 对重 JS 页面要给足 8-12s
+  - 跨池 id 冲突会让 findBe 命中错误条目（inspector 文不对题）——新池条目 id 一律加池前缀（mw-/db-），并依赖构建期检查拦截
 
 ## 5. 反馈闭环
 

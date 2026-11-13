@@ -87,7 +87,7 @@ function validate(spec) {
   const chk = (o, where) => {
     if (o.change != null && !CHANGES.has(o.change)) errors.push(where + '：change 只能是 added / removed / modified / unchanged，收到 "' + o.change + '"');
     if (o.before != null && (typeof o.before !== 'object' || Array.isArray(o.before))) errors.push(where + '：before 必须是对象（旧字段值）');
-    if (o.before && o.change !== 'modified' && o.change !== 'removed') warnings.push(where + '：写了 before 但 change 不是 modified，左侧仍会按 before 显示');
+    if (o.before && o.change !== 'modified' && o.change !== 'removed' && o.change !== 'unchanged') warnings.push(where + '：写了 before 但 change 不是 modified，左侧仍会按 before 显示');
     if (o.change === 'modified' && !o.before && !o.note) warnings.push(where + '：change=modified 但既没有 before 也没有 note，用户看不出改了什么');
   };
   const pages = Array.isArray(spec.pages) ? spec.pages : [];
@@ -193,6 +193,36 @@ function validate(spec) {
   }
   const sysflows = Array.isArray(spec.sysflows) ? spec.sysflows : [];
   for (const m of sysflows) { reg(m, '系统流程「' + (m.name || m.id || '?') + '」'); }
+  // 引用闭合: trigger / on.target / flow node 必须指向存在的 id
+  {
+    const ids2 = new Set();
+    const collect = (o) => {
+      if (o && typeof o === 'object') {
+        if (o.id != null) ids2.add(String(o.id));
+        for (const v of Object.values(o)) collect(v);
+      } else if (Array.isArray(o)) { for (const x of o) collect(x); }
+    };
+    collect(spec);
+    const checkRef = (ref, where) => { if (ref != null && String(ref) !== '' && !ids2.has(String(ref))) errors.push(where + '：引用了不存在的 id #' + ref + '（悬空引用）'); };
+    for (const pg of pages) {
+      const walkRef = (n, where) => {
+        if (!n || typeof n !== 'object') return;
+        const t = n.trigger;
+        if (t) for (const x of (Array.isArray(t) ? t : [t])) checkRef(x, where + ' trigger');
+        for (const ia of n.on || []) { if (ia && ia.target && ia.action !== 'close' && ia.action !== 'back') checkRef(ia.target, where + ' on.target'); }
+        for (const c of n.children || []) walkRef(c, where);
+      };
+      walkRef(pg.root, '页面「' + (pg.name || pg.id) + '」');
+      for (const ov of pg.overlays || []) { if (ov.trigger) for (const x of (Array.isArray(ov.trigger) ? ov.trigger : [ov.trigger])) checkRef(x, '弹层「' + (ov.label || ov.id) + '」trigger'); }
+    }
+    for (const f of flows.concat(sysflows)) for (const s of f.steps || []) { if (s && s.node) for (const x of (Array.isArray(s.node) ? s.node : [s.node])) checkRef(x, '流程「' + (f.name || f.id) + '」步骤 node'); }
+  }
+  // modified 上下文: 变更条目必须带 before 或 note(扩展池)
+  for (const pool of [['backend', backend], ['datachanges', datachanges], ['middleware', middleware]]) {
+    for (const m of pool[1]) for (const it of m.items || []) {
+      if (it.change === 'modified' && !it.before && !it.note) warnings.push(pool[0] + ' 条目「' + (it.table || it.name || it.id) + '」：change=modified 但没有 before/note，看不出改了什么');
+    }
+  }
   const f = (b) => '+' + b.added + ' −' + b.removed + ' ~' + b.modified;
   const summary = '· 页面 ' + pages.length + '（' + f(cnt.pages) + '）· 界面元素变化 ' + f(cnt.nodes) + ' · 流程 ' + flows.length + '（步骤 ' + f(cnt.steps) + '）· 后端 ' + backend.length + ' 个模块（' + f(cnt.be) + '）';
   if (!pages.length && !flows.length && !backend.length) warnings.push('spec 里没有 pages / flows / backend，预览将是空的');
