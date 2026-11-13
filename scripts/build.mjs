@@ -54,6 +54,22 @@ const template = readFileSync(join(assets, 'template.html'), 'utf8');
 const css = readFileSync(join(assets, 'style.css'), 'utf8');
 const runtime = readFileSync(join(assets, 'runtime.js'), 'utf8');
 const specJson = JSON.stringify(spec).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
+// cross-pool id uniqueness (backend + datachanges + middleware + flows)
+{
+  const seen = new Map();
+  const pools = [['backend', spec.backend], ['datachanges', spec.datachanges || []], ['middleware', spec.middleware || []], ['flows', spec.flows || []]];
+  for (const [pool, arr] of pools) {
+    for (const m of arr || []) {
+      const key = m.id;
+      if (seen.has(key)) { fail.push(`✖ 跨池 id 冲突: #${key} 同时存在于 ${seen.get(key)} 和 ${pool}`); } else seen.set(key, pool); }
+      for (const it of m.items || []) {
+        const k2 = it.id;
+        if (seen.has(k2)) { fail.push(`✖ 跨池 id 冲突: #${k2} 同时存在于 ${seen.get(k2)} 和 ${pool}(item)`); } else seen.set(k2, pool + '(item)'); }
+    }
+  }
+}
+
 const html = template
   .replace('__TITLE__', () => escapeHtml((spec.title || 'smyw') + ' · 变更预览'))
   .replace('/*__STYLE__*/', () => css)
