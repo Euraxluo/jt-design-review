@@ -1125,9 +1125,28 @@ function detailRender(n, p, side, whole) {
   const replicaHtml = side === 'before' ? p.htmlBefore : p.htmlAfter;
   if (replicaHtml) {
     const uid = ui.unit || n.id;
-    const mini = h('div', { class: 'dt-replica' },
-      h('div', { class: 'dt-replica-b', innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml }));
-    // 宽度自适应面板(复刻本身 flex 自适应); 高度受限时内部滚动并定位到命中元素
+    const DW = 900; // 设计宽: 小图按此固有宽渲染, 再等比缩放到面板宽
+    const inner = h('div', { class: 'dt-replica-b', style: { width: DW + 'px' }, innerHTML: (p.htmlCss ? '<style>' + p.htmlCss + '</style>' : '') + replicaHtml });
+    const mini = h('div', { class: 'dt-replica' }, inner);
+    // 等比缩放: 固有 900px → 面板宽, 高度按缩放补偿, 保持画布同比例
+    const fitScale = () => {
+      if (!mini.isConnected) return;
+      const avail = (mini.clientWidth || 460) - 8;
+      const s = Math.min(1, avail / DW);
+      inner.style.transform = 'scale(' + s + ')';
+      inner.style.transformOrigin = 'top left';
+      mini.style.height = 'auto';
+      const naturalH = inner.scrollHeight;
+      mini.style.maxHeight = 'none';
+      // 容器高度 = 内容高×s(上限 60vh), 超出内部滚动
+      const capH = Math.round(window.innerHeight * 0.6);
+      const needH = Math.round(naturalH * s) + 8;
+      mini.style.height = Math.min(needH, capH) + 'px';
+      inner.dataset.scale = String(s);
+      const t = inner.querySelector('.dt-hit');
+      if (t && t.scrollIntoView) t.scrollIntoView({ block: 'center' });
+    };
+    requestAnimationFrame(fitScale);
     // 高亮命中当前单元的锚点, 其余淡化
     requestAnimationFrame(() => {
       if (!mini.isConnected) return;
