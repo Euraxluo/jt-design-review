@@ -1132,16 +1132,19 @@ function detailRender(n, p, side, whole) {
     const fitScale = () => {
       if (!mini.isConnected) return;
       const avail = (mini.clientWidth || 460) - 8;
-      const s = Math.min(1, avail / DW);
-      inner.style.transform = 'scale(' + s + ')';
-      inner.style.transformOrigin = 'top left';
+      const capH = Math.round(window.innerHeight * 0.72);
       inner.style.position = 'absolute';
       inner.style.top = '0'; inner.style.left = '0';
+      inner.style.transform = 'none';
+      const naturalH = inner.scrollHeight || 1;
+      // 整页完整可见: 同时适配宽度与高度(取更小缩放比), 不截断
+      const s = Math.min(1, avail / DW, capH / naturalH);
+      inner.style.transform = 'scale(' + s + ')';
+      inner.style.transformOrigin = 'top left';
       fitbox.style.position = 'relative';
       fitbox.style.width = '100%';
-      const naturalH = inner.scrollHeight;
       fitbox.style.height = Math.round(naturalH * s) + 'px';
-      // 完整展示: 不设高度上限, 由详情面板整体滚动浏览
+      // 完整展示: 不设高度上限, fitbox 已按缩放后高度占位
       mini.style.maxHeight = 'none';
       inner.dataset.scale = String(s);
     };
