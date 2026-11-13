@@ -517,3 +517,19 @@ input,select,textarea{border:1px solid #777}
 .behav-d{font-size:12px;line-height:1.5}
 .col-line[data-kind="becol"]{cursor:pointer}
 .col-line[data-kind="becol"]:hover{outline:1.5px dashed #4c6ef5}
+
+/* 单表 diff 卡 */
+.db-tbls{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.tdc{border:1px solid #e5e9ee;border-radius:8px;padding:8px 10px;background:#fff}
+.tdc.added{border-color:#18a05866;background:#f6fdf8}
+.tdc.modified{border-color:#e2a40066;background:#fffdf5}
+.tdc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.tdc-owner{font-size:10.5px;color:#8b949e;font-family:ui-monospace,monospace}
+.chip.migrate{background:#eef2ff;color:#3b5bdb}
+.chip.rollback{background:#fff0f0;color:#c92a2a}
+.tdc-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.tdc-side{border:1px dashed #dfe3e8;border-radius:6px;padding:5px 7px;min-width:0}
+.tdc-side.b{background:#fafbfc}
+.tdc-side.a{background:#f8fff9}
+.tdc-side-t{font-size:10px;font-weight:800;color:#8b949e;letter-spacing:.5px;margin-bottom:3px}
+.tdc-note{font-size:11.5px;color:#57606a;margin-top:4px}

@@ -1406,18 +1406,65 @@ function renderDataChanges() {
   const mods = S.spec.datachanges || [];
   const out = h('div', { class: 'be' });
   if (!mods.length) { out.append(h('div', { class: 'empty' }, '没有数据库变更。')); return out; }
-  // 摘要: 自动统计口径
   let chgT = 0, addT = 0, totT = 0;
-  mods.forEach((m) => (m.items || []).forEach((it) => { totT++; if (it.change === 'added') addT++; else if (it.change === 'modified' || it.change === 'removed') chgT++; }));
+  mods.forEach((m) => (m.items || []).forEach((it) => { totT++; if (it.change === 'added') addT++; else if (it.change !== 'unchanged') chgT++; }));
   ui.dbFilter = ui.dbFilter || 'changed';
-  const bar = h('div', { class: 'db-bar' },
+  out.append(h('div', { class: 'db-bar' },
     h('span', { class: 'db-sum' }, h('b', null, addT + ' 新增'), ' · ', h('b', null, chgT + ' 修改'), ' · 其余 ' + (totT - addT - chgT) + ' 张确认不动（共 ' + totT + ' 张）'),
     h('span', { class: 'db-filters' },
-      ['changed', 'all'].map((f) => h('button', { class: 'seg' + (ui.dbFilter === f ? ' on' : ''), onclick: () => { ui.dbFilter = f; render(); } }, f === 'changed' ? '只看变更 (' + (addT + chgT) + ')' : '全部表 (' + totT + ')'))));
-  out.append(bar);
-  const filtered = mods.map((m) => ({ ...m, items: ui.dbFilter === 'changed' ? (m.items || []).filter((i) => i.change === 'added' || i.change === 'modified' || i.change === 'removed') : m.items }));
-  out.append(h('div', { class: 'compare' }, dbSide('before', filtered), dbSide('after', filtered)));
+      ['changed', 'all'].map((f) => h('button', { class: 'seg' + (ui.dbFilter === f ? ' on' : ''), onclick: () => { ui.dbFilter = f; render(); } }, f === 'changed' ? '只看变更 (' + (addT + chgT) + ')' : '全部表 (' + totT + ')')))));
+
+  // 逐表单卡: 每张表一张卡, 卡内 before|after 左右分栏
+  mods.forEach((m) => {
+    const items = (m.items || []).filter((it) => ui.dbFilter === 'all' || it.change !== 'unchanged');
+    if (!items.length) return;
+    const st = modStatus(m);
+    const modCard = h('div', { class: 'db-mod card' },
+      h('div', { class: 'be-head' }, h('span', { class: 'dot dot-' + st }), h('h3', null, m.name), chgChip(st),
+        m.engine ? h('span', { class: 'chip sm' }, m.engine) : null,
+        m.note ? h('span', { class: 'muted' }, m.note) : null),
+      h('div', { class: 'db-tbls' }, items.map((it) => tableDiffCard(m, it))));
+    out.append(modCard);
+  });
   return out;
+}
+// 单表 diff 卡: 头(表名/变更/DDL/ALTER/回滚) + 左右分栏(改动前列 | 改动后列)
+function tableDiffCard(m, it) {
+  const beforeCols = (it.before && Array.isArray(it.before.columns)) ? it.before.columns : [];
+  const afterCols = Array.isArray(it.columns) ? it.columns : [];
+  const behavB = beforeCols.find((c) => String(c.name).startsWith('▸'));
+  const behavA = afterCols.find((c) => String(c.name).startsWith('▸'));
+  const norm = (cols) => cols.filter((c) => !String(c.name).startsWith('▸'));
+  const head = h('div', { class: 'tdc-head' },
+    chgTag(it, 'after'), h('span', { class: 'chip sm' }, '表'), h('code', null, it.table || it.name || ''),
+    it.migration ? h('span', { class: 'chip sm migrate' }, '迁移: ' + it.migration) : null,
+    it.rollback ? h('span', { class: 'chip sm rollback' }, '回滚: ' + it.rollback) : null,
+    it.owner ? h('span', { class: 'tdc-owner' }, it.owner) : null);
+  const sideCol = (cols, label, cls) => h('div', { class: 'tdc-side ' + cls },
+    h('div', { class: 'tdc-side-t' }, label),
+    (Array.isArray(cols) ? cols : []) ? h('div', { class: 'cols' }, (Array.isArray(cols) ? cols : []).map((c) => colLineEl(c, it, label === '改动前' ? 'before' : 'after')).filter(Boolean)) : h('div', { class: 'muted' }, '（无）'));
+  const behav = (behavA || behavB) ? h('div', { class: 'behav-banner' },
+    h('div', { class: 'behav-t' }, '行为变更'),
+    h('div', { class: 'behav-d' }, h('span', { class: 'col-old' }, String((behavA || behavB).before || '—')), h('span', { class: 'col-arrow' }, ' → '), h('span', { class: 'col-new' }, (behavA || behavB).note || ''))) : null;
+  return h('div', { class: 'tdc ' + chgClass(it, 'after'), 'data-kind': 'be', 'data-id': it.id, 'data-side': 'after' },
+    head,
+    it.ddl ? h('pre', { class: 'ddl' }, it.ddl) : null,
+    behav,
+    h('div', { class: 'tdc-split' }, sideCol(norm(beforeCols), '改动前列', 'b'), sideCol(norm(afterCols), '改动后列', 'a')),
+    it.indexes && it.indexes !== '-' ? h('div', { class: 'idx' }, '索引: ', h('code', null, it.indexes)) : null,
+    it.note ? h('div', { class: 'tdc-note' }, it.note) : null);
+}
+function colLineEl(c, it, side) {
+  const cv = side === 'before' ? c : c;
+  if (side === 'before' && c.change === 'added') return null;
+  if (side === 'after' && c.change === 'removed') return null;
+  const oldVal = (side === 'after' && c.change === 'modified' && c.before !== undefined) ? String(typeof c.before === 'string' ? c.before : JSON.stringify(c.before)) : null;
+  return h('div', { class: 'col-line ' + (c.change || ''), 'data-kind': 'becol', 'data-id': (it.id || '') + '.' + (c.name || ''), 'data-side': side, title: '点击批注这一列' },
+    h('span', { class: 'col-sign' }, c.change === 'added' ? '+' : c.change === 'removed' ? '−' : c.change === 'modified' ? '~' : '·'),
+    h('code', null, c.name), c.type ? h('span', { class: 'muted' }, c.type) : null,
+    oldVal ? h('span', null, h('span', { class: 'col-old' }, oldVal), h('span', { class: 'col-arrow' }, ' → '), h('span', { class: 'col-new' }, (c.note || ''))) :
+      (side === 'before' && c.change === 'modified' && c.before ? h('span', { class: 'muted' }, '（' + String(c.before) + ' →）') : null),
+    !oldVal && c.note ? h('span', { class: 'col-note' }, c.note) : null);
 }
 function dbSide(side, preFiltered) {
   const mods = (preFiltered || S.spec.datachanges).filter((m) => visible(m, side));
