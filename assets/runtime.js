@@ -1676,14 +1676,15 @@ function mwBox(m, side) {
 // ------------------------------------------------------------------ sysflows (系统流程 tab)
 function renderSysFlows() {
   const sfs = S.spec.sysflows || [];
-  const out = h('div', { class: 'flows' });
+  const out = h('div', { class: 'flows flows-fill' });
   if (!sfs.length) out.append(h('div', { class: 'empty' }, '没有系统流程。'));
   sfs.forEach((f) => {
     if (f.embedHtml != null) {
       out.append(h('div', { class: 'flow card' },
         h('div', { class: 'flow-head', 'data-kind': 'flow', 'data-id': f.id }, h('span', { class: 'dot dot-added' }), h('h3', null, f.name), f.note ? h('span', { class: 'muted' }, f.note) : null,
           (() => { const n = S.comments.filter((c) => c.target && c.target.kind === 'archify' && c.target.page === f.id).length; return n ? h('span', { class: 'cmt-badge', title: n + ' 条图内批注' }, '💬' + n) : null; })()),
-        h('iframe', { srcdoc: f.embedHtml, 'data-flow': f.id, style: { width: '100%', height: '78vh', border: '1px solid #d5d9e0', borderRadius: '8px', background: '#fff' } })));
+        h('div', { class: 'flow-embed' },
+          h('iframe', { srcdoc: f.embedHtml, 'data-flow': f.id }))));
       return;
     }
     const st = flowStatus(f);
