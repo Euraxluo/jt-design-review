@@ -1,5 +1,5 @@
-display_name: JT 方案确认工作台
-short_description: 复刻+架构图+全维度变更+批注反馈的单文件评审原型
-default_prompt: 把当前方案做成确认原型（页面复刻/系统图/数据库/中间件/后端 + 批注反馈）
+display_name: Design Change Review 方案确认工作台
+short_description: 任何技术栈的单文件评审原型：复刻+流程图+全维度变更 diff+批注反馈闭环
+default_prompt: 用 design-change-review 把当前方案做成确认原型（页面改动前后/系统流程/数据库/中间件/后端 + 批注反馈闭环），自测交互后交付 preview.html
 policy:
   allow_implicit_invocation: true

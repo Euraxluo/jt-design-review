@@ -62,13 +62,30 @@ design-change-review 把一次方案变更（页面 / 流程 / 数据库 / 中�
 
 ## 安装
 
-skill 目录放进你的 Agent 即可（`~/.agents/skills/` 或项目内 `.agents/skills/`）：
-
 ```bash
 git clone https://github.com/Euraxluo/design-change-review.git ~/.agents/skills/design-change-review
 ```
 
-可选集成：[Archify](https://github.com/tt-a1i/archify)（系统流程交互图，未安装时自动回落泳道）。
+> 项目级安装（团队开箱一致）：clone 到 `<project>/.agents/skills/design-change-review`，
+> 产物落在 `<project>/.agents/jdr/<日期>-<名称>/`，全部资产跟仓库走。
+
+可选集成：[Archify](https://github.com/tt-a1i/archify)（系统流程交互图，未安装时自动回落泳道）：
+```bash
+git clone https://github.com/tt-a1i/archify.git /tmp/archify && cp -r /tmp/archify/archify ~/.agents/skills/archify
+node ~/.agents/skills/archify/bin/archify.mjs doctor   # → "Archify is ready."
+```
+
+## 一句话上手（装好后对 coding agent 说）
+
+**中文：**
+> 用 design-change-review skill，把我们刚讨论的「XXX」方案做成确认原型（含页面改动前后、系统流程、数据库和中间件变更），构建完自测交互后给我 preview.html。
+
+**English:**
+> Use the design-change-review skill to turn the plan we just discussed into a confirmation prototype (UI before/after, system flow, DB & middleware changes), verify interactions, then hand me preview.html.
+
+Agent 会自动：读 `SKILL.md` → 按 `references/workflow.md` 盘点现状 → 写 spec → `build` + `embed` →
+Playwright 自测 → 交付单文件原型。你评审后点「复制反馈」粘回去，再说一句
+「落实反馈，version+1」即可进入下一轮。
 
 ## 快速开始
 
