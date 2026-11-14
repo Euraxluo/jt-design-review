@@ -46,6 +46,11 @@ const shell = `
 .arw-btn.ghost{background:transparent;border:1px solid #5a6572;margin-left:6px}
 body.arw-embedded #arw-side{display:none!important}
 body.arw-embedded{padding-right:0!important}
+body.arw-embedded .toolbar{display:none!important}
+body.arw-embedded .container > .header{display:none!important}
+body.arw-embedded h1{display:none!important}
+body.arw-embedded .container{padding-top:0!important;margin-top:0!important}
+body.arw-embedded .diagram-container{margin-top:0!important}
 #arw-side{position:fixed;top:44px;right:0;bottom:0;width:320px;background:#fff;border-left:1px solid #d8dee6;z-index:9998;overflow:auto;padding:12px;font:13px/1.5 system-ui;box-shadow:-4px 0 14px rgba(0,0,0,.08)}
 #arw-info{background:#f6f8fa;border:1px solid #e1e6eb;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#333;white-space:pre-wrap}
 .arw-empty{color:#8b949e}
