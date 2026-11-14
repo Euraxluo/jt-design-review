@@ -41,7 +41,7 @@ metadata:
 - 运行真实应用（任何方式：make dev / docker compose / 本地服务），浏览器自动化逐路由截图，**变更发生在哪个 tab/视图就打开那个 tab 再截**
 - 从源码盘点真实结构：路由数 / API 数 / 数据模型 / 数据库全量表清单，分区归组；页面树必须和源码结构对得上
 
-### 2. 写 spec（`.jdr/<日期>-<名称>/spec.json`）
+### 2. 写 spec（`<project>/.agents/jdr/<日期>-<名称>/spec.json`（产物资产跟项目走，`.agents` 是标准目录））
 一棵合并树 + 扩展字段：
 - `pages[].htmlBefore / htmlAfter / htmlCss`：**1:1 手写 HTML 复刻**替代抽象线框。变更元素只挂 `data-replica-unit="<spec节点id>"`——编号/颜色由 build.mjs 静态注入，**零手写编号**；说明放 `tipdot` 悬浮卡
 - `sysflows[]`：系统流程——**首选 Archify embed**（`archify render` → `wrap-archify.mjs` → `embedHtml` iframe，点节点批注）；无 embed 回落泳道步骤；Archify 未安装也能工作
@@ -51,8 +51,8 @@ metadata:
 
 ### 3. 构建与后处理
 ```bash
-node $SKILL/scripts/build.mjs .jdr/<dir>/spec.json      # 校验+注入徽标, 出错阻断
-node $SKILL/scripts/embed.mjs .jdr/<dir>/preview.html   # 截图内嵌 + </ 转义
+node $SKILL/scripts/build.mjs .agents/jdr/<dir>/spec.json      # 校验+注入徽标, 出错阻断
+node $SKILL/scripts/embed.mjs .agents/jdr/<dir>/preview.html   # 截图内嵌 + </ 转义
 ```
 
 ### 4. 交互验证（必须做，不许只看构建成功）
@@ -61,7 +61,7 @@ Playwright 真实点击验证（清单见 workflow.md）：徽标编号三方一
 ### 5. 交给用户 → 等反馈 → 应用反馈
 用户「复制反馈」粘贴回来 → 存 `feedback-v<N>.md` →
 ```bash
-node $SKILL/scripts/apply-feedback.mjs .jdr/<dir>/feedback-v<N>.md .jdr/<dir>/spec.json
+node $SKILL/scripts/apply-feedback.mjs .agents/jdr/<dir>/feedback-v<N>.md .agents/jdr/<dir>/spec.json
 ```
 批注落实后重新 build + embed。原型确认前不写实现代码。
 

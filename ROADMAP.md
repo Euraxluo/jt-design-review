@@ -64,7 +64,13 @@
 8. 多方案 A/B 视图（同一变更两套方案并排确认）
 9. 英文文档 + i18n（产出物 UI 双语）
 
-## 五、维护纪律
+## 五、资产布局标准
+
+- **Skill 本体**：`<project>/.agents/skills/jt-design-review/`（.agents 是跨工具标准目录，资产跟项目仓库走）
+- **评审产物**：`<project>/.agents/jdr/<日期>-<名称>/`（spec.json / preview.html / feedback-v*.md / evidence）
+- Skill 也可装到用户级 `~/.agents/skills/`（多项目复用）；项目内副本优先，保证团队开箱一致
+
+## 六、维护纪律
 
 - 任何 runtime 改动必须过 workflow.md「Playwright 必测清单」才能发布
 - 破坏性 spec 格式变更：minor 版本 + CHANGELOG 迁移说明 + apply-feedback 兼容旧格式一版

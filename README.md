@@ -24,11 +24,11 @@
 
 ```bash
 # 1. 写 spec（格式见 references/spec-format.md）
-mkdir -p .jdr/20260101-my-feature && vim .jdr/20260101-my-feature/spec.json
+mkdir -p .agents/jdr/20260101-my-feature && vim .agents/jdr/20260101-my-feature/spec.json
 
 # 2. 构建（校验+徽标注入，出错阻断）+ 内嵌截图
-node scripts/build.mjs .jdr/20260101-my-feature/spec.json
-node scripts/embed.mjs .jdr/20260101-my-feature/preview.html
+node scripts/build.mjs .agents/jdr/20260101-my-feature/spec.json
+node scripts/embed.mjs .agents/jdr/20260101-my-feature/preview.html
 
 # 3. （可选，推荐）系统流程用 Archify
 node ~/.agents/skills/archify/bin/archify.mjs render architecture arch.json arch.html
@@ -36,7 +36,7 @@ node scripts/wrap-archify.mjs arch.html -o arch-review.html   # 加点选批注�
 # 把 arch-review.html 全文塞进 spec.sysflows[i].embedHtml
 
 # 4. 用户看完 → 复制反馈回来
-node scripts/apply-feedback.mjs .jdr/.../feedback-v2.md .jdr/.../spec.json
+node scripts/apply-feedback.mjs .agents/jdr/.../feedback-v2.md .agents/jdr/.../spec.json
 ```
 
 ## 设计原则

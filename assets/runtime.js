@@ -2107,7 +2107,7 @@ function buildMarkdown(withSpec) {
   if (S.ops.length) { L.push('## 用户直接对方案做的修改（按操作顺序）'); S.ops.forEach((o, i) => L.push((i + 1) + '. ' + o.desc)); L.push(''); }
   if (!S.comments.length && !S.ops.length && !g.tags.length && !g.text && !ans.length && !S.approved) L.push('（暂无反馈）', '');
   L.push('## 给 Agent 的处理说明',
-    patch.ops.length ? '- 把这份反馈原样保存为 .jdr/<dir>/feedback-v' + BASE.version + '.md，运行 node <skill>/scripts/apply-feedback.mjs <这份 md> <spec.json>：它把末尾的 jdr-patch（用户对 v' + BASE.version + ' 的结构修改，已重新标注 added/removed/modified、movedFrom/movedTo）应用到 spec.json，version + 1。不要凭上面的操作描述手工重放。' : '- 用户没有改方案结构：直接在现有 spec 上落实批注，version + 1。',
+    patch.ops.length ? '- 把这份反馈原样保存为 .agents/jdr/<dir>/feedback-v' + BASE.version + '.md，运行 node <skill>/scripts/apply-feedback.mjs <这份 md> <spec.json>：它把末尾的 jdr-patch（用户对 v' + BASE.version + ' 的结构修改，已重新标注 added/removed/modified、movedFrom/movedTo）应用到 spec.json，version + 1。不要凭上面的操作描述手工重放。' : '- 用户没有改方案结构：直接在现有 spec 上落实批注，version + 1。',
     '- 「必须改」全部落实；「建议」尽量采纳，不采纳要说明理由；「疑问」先回答再动手。',
     '- 线框只表达结构和交互，不代表视觉样式；样式/风格类意见在实现时按项目现有设计规范落实。', '');
   if (patch.ops.length) L.push('<details><summary>jdr-patch（相对 v' + BASE.version + ' 的结构修改，' + patch.ops.length + ' 条）</summary>', '', FENCE + 'json', JSON.stringify(patch), FENCE, '', '</details>', '');

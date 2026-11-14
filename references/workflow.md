@@ -71,7 +71,7 @@ node $SKILL/scripts/embed.mjs <preview.html>
 ## 5. 反馈闭环
 
 1. 用户在页面批注/改结构/答问题 → 反馈页「复制反馈」→ 粘贴回对话
-2. 原样存 `.jdr/<dir>/feedback-v<N>.md`
+2. 原样存 `.agents/jdr/<dir>/feedback-v<N>.md`
 3. 有结构修改：`apply-feedback.mjs` 应用补丁（version 校验）；纯批注则直接编辑 spec
 4. 落实后 rebuild + re-embed，告诉用户刷新
 5. 「必须改」全落实、「建议」不采纳要说明、「疑问」先回答；用户点「确认方案」后才开始实现
