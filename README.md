@@ -56,6 +56,13 @@ node scripts/apply-feedback.mjs .agents/jdr/.../feedback-v2.md .agents/jdr/.../s
 - [runtime 架构笔记](references/runtime-notes.md)
 - [路线图](ROADMAP.md)
 
+## 社区
+
+- [贡献指南](CONTRIBUTING.md)（本地检查清单 + runtime 改动约定）
+- [安全策略](SECURITY.md)
+- [路线图](ROADMAP.md)
+- Bug / 需求请用 issue 模板；runtime 改动的 PR 需附 Playwright 必测清单证据
+
 ## License
 
 Apache-2.0（Archify 为独立安装的外部 skill，遵循其自身 Apache-2.0）。

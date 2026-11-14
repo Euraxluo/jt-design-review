@@ -2,6 +2,21 @@
 
 本项目的显著变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)，版本遵循 [SemVer](https://semver.org/)。
 
+
+## [1.0.1] - 2026-11-14
+
+### 修复（Archify 系统流程集成）
+- 嵌入模式批注统一：壳内不再有独立批注侧栏，点节点 postMessage → 外层标准批注面板（单 UI 单管线），独立打开时回落本地批注
+- 图内批注直通统一反馈管线（kind=archify，反馈 tab 汇总 / sysflow 卡头徽标 / jump 联动）
+- 泳道/boundary 大框批注锚文本聚合（此前显示空白 "SVG 元素"）
+- 嵌入时隐藏 Archify 冗余头部（toolbar/标题），SVG 画布上移约 100px
+- sysflow tab 弹性满视口布局（iframe 占视口 76%，替代固定 78vh），去掉误留的「列表」按钮、`#main` padding 归零
+- 修复 wrap-archify.mjs 模板字面量转义（\s / \n 被吃导致壳 SyntaxError）
+
+### 工程化
+- 新增 CONTRIBUTING / SECURITY / Issue 模板 ×2 / PR 模板 / .gitignore
+- CI 拆分为 lint / structure / build-smoke / wrap-smoke 四个 job，含结构完整性与产物残留检查
+
 ## [1.0.0] - 2026-11-13
 
 首个独立版本（与历史分叉上游终止同步，自有路线）。

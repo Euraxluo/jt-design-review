@@ -18,6 +18,19 @@ jobs:
       - name: Syntax check runtime
         run: node --check assets/runtime.js
 
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Required files present
+        run: |
+          for f in SKILL.md README.md CHANGELOG.md LICENSE ROADMAP.md CONTRIBUTING.md SECURITY.md references/workflow.md references/spec-format.md; do
+            [ -f "$f" ] || { echo "missing $f"; exit 1; }
+          done
+      - name: No stray artifacts committed
+        run: |
+          ! git ls-files | grep -E 'node_modules|\.DS_Store|/preview\.html$'
+
   build-smoke:
     runs-on: ubuntu-latest
     steps:
@@ -55,3 +68,14 @@ jobs:
           else
             echo "duplicate ids rejected ✔"
           fi
+
+  wrap-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: wrap-archify helps without input
+        run: |
+          node scripts/wrap-archify.mjs 2>&1 | grep -q "用法" && echo "usage ok ✔"
