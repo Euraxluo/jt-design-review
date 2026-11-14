@@ -696,7 +696,7 @@ function renderBanners() {
 }
 function renderTab() {
   if (ui.tab === 'flows') return renderFlows();
-  if (ui.tab === 'sysflow') return h('div', { class: 'cv-layout' }, h('div', { class: 'cv-listbtn' }, '列表'), renderSysFlows(), detailPanel());
+  if (ui.tab === 'sysflow') return h('div', { class: 'cv-layout' }, renderSysFlows(), detailPanel());
   if (ui.tab === 'db') return renderDataChanges();
   if (ui.tab === 'mw') return renderMiddleware();
   if (ui.tab === 'backend') return renderBackend();
