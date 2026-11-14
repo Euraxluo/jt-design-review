@@ -1,13 +1,11 @@
 # Archify 集成（系统流程图/架构图优先渲染器）
 
-## 何时用 Archify vs Excalidraw vs 内嵌 sysflow
-
+## 何时用 Archify vs 
 | 场景 | 用什么 |
 |---|---|
 | 方案确认页里的"系统流程" tab（spec.sysflows） | **首选 Archify embed**：`archify render` 出 HTML → `wrap-archify.mjs` 包装 → 塞进 sysflows[i].embedHtml（renderSysFlows 已支持 iframe srcdoc，点节点批注可用）。无 embedHtml 的条目回落到内嵌泳道 |
 | 独立交付的流程图/架构图 HTML（发钉钉、开会投屏、放设计文档） | **Archify** |
-| 需要手工拖拽编辑的架构草图（开会现场共创） | Excalidraw（.excalidraw + build-excalidraw.mjs） |
-| 代码库/多源真实数据溯源的架构图 | **Archify**（sources 字段带 repo 溯源） |
+| 需要手工拖拽编辑的架构草图（开会现场共创） | | 代码库/多源真实数据溯源的架构图 | **Archify**（sources 字段带 repo 溯源） |
 
 ## Archify 是什么
 - 开源 Apache-2.0，`tt-a1i/archify`（96k★，skills.sh 130k+ 安装），官方支持 OpenCode

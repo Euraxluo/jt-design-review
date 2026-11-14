@@ -1,4 +1,4 @@
-# smyw（show me you want）spec 格式
+# spec 格式
 
 spec 是一个 JSON 对象。只有 `title` 加上 `pages` / `flows` / `backend` 至少其中一项是必需的，其余字段都可选。
 
@@ -159,15 +159,15 @@ action：
 ## 批注                                     ← 1. **[必须改][交互方式]** 页面「任务列表」› 改动后 › … #btn-new
 ## 用户直接对方案做的修改（按操作顺序）       ← 每条一句话，说明意图
 ## 给 Agent 的处理说明
-<details><summary>smyw-patch（相对 v1 的结构修改，N 条）</summary>
+<details><summary>jdr-patch（相对 v1 的结构修改，N 条）</summary>
 ```json
-{"format":"smyw-patch@1","base":1,"ops":[ … ]}
+{"format":"jdr-patch@1","base":1,"ops":[ … ]}
 ```
 </details>
 <details><summary>revisedSpec（备用：完整方案）</summary> …   ← 只在用户勾选时出现
 ~~~
 
-### smyw-patch@1
+### jdr-patch@1
 
 `base` 是补丁基于的 spec 版本，必须等于磁盘上 spec.json 的 version，否则脚本拒绝应用。节点（页面、元素、弹层、流程、步骤、后端模块和条目）都按 `id` 定位；`parent` 为 `"#spec"` 表示 spec 本身。
 
@@ -187,13 +187,12 @@ action：
 # 本 skill 扩展字段（jt-design-review）
 
 ## pages[]
-- `htmlBefore` / `htmlAfter`：1:1 手写复刻 HTML（替代抽象线框渲染）。变更点 `class="mark" data-n="N"`，说明用 `.tipdot>.tipcard` 悬浮卡；联动元素挂 `data-kind="node" data-id="<spec节点id>"`。含 `</` 的内容写 spec 时先哨兵转义（见 excalidraw-embed.md 同款做法），或由 embed.mjs 校验。
+- `htmlBefore` / `htmlAfter`：1:1 手写复刻 HTML（替代抽象线框渲染）。变更元素挂 `data-replica-unit="<spec节点id>"`（编号/颜色 build 注入）；说明用 `.tipdot>.tipcard` 悬浮卡；联动元素挂 `data-kind="node" data-id="<spec节点id>"`。含 `</` 的内容写 spec 时先哨兵转义由 embed.mjs 校验。
 - `htmlCss`：复刻配套样式，随复刻一起注入容器。
 - 无 htmlBefore/htmlAfter 的页退回上游线框渲染；image 节点 `src: "evidence/<area>/xx.png"` 相对 docs/plans，build 后 embed.mjs 内嵌 base64。
 
 ## sysflows[]（系统流程 tab）
-- `embedHtml`：可编辑 Excalidraw iframe 全文（build-excalidraw.mjs 产出 + 哨兵转义）
-- 或 `steps[]` 泳道：actor 用系统名（用户/本平台/JT 授权服务器/资源服务器…），`kind:"note"` 或 text 以 `——` 开头作为阶段分隔标题
+- `embedHtml`：可编辑 - 或 `steps[]` 泳道：actor 用系统名（用户/本平台/JT 授权服务器/资源服务器…），`kind:"note"` 或 text 以 `——` 开头作为阶段分隔标题
 
 ## datachanges[]（数据库变更 tab）
 模块：`{ id, name, change, note, items: [{ id, table, change, columns: [{name, type, change, note}], indexes, note }] }`，columns.change: added/modified/removed 渲染 +/~/−(删除线)。

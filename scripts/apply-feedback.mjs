@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// smyw apply-feedback: apply the smyw-patch block from the feedback Markdown the user pasted back to spec.json
+// apply-feedback: apply the jdr-patch block from the feedback Markdown the user pasted back to spec.json
 // (falls back to a full revisedSpec block if present), back up the old spec as spec-v<N>.json and write v<N+1>.
 // Usage: node apply-feedback.mjs <feedback.md> <spec.json> [--dry-run]
 import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ for (let i = md.indexOf(FENCE + 'json'); i >= 0; i = md.indexOf(FENCE + 'json', 
   if (end < 0) fail('JSON 代码块没有结束标记，粘贴的内容可能被截断了。请用户重新复制完整反馈。');
   try { blocks.push(JSON.parse(md.slice(start, end))); } catch (e) { fail('反馈里的 JSON 不完整（可能粘贴时被截断）：' + e.message); }
 }
-const patch = blocks.find((b) => b && b.format === 'smyw-patch@1');
+const patch = blocks.find((b) => b && (b.format === 'jdr-patch@1' || b.format === 'smyw-patch@1'));
 const full = blocks.find((b) => b && !b.format && ['pages', 'flows', 'backend'].some((k) => Array.isArray(b[k])));
 const userEdited = /##\s*用户直接对方案做的修改/.test(md);
 
@@ -32,13 +32,13 @@ let next;
 if (patch) {
   if (Number(patch.base) !== curVer) fail('这份反馈是在 v' + patch.base + ' 上改的，而当前 spec 是 v' + curVer + '。请用户刷新到最新预览后重新复制反馈（或让用户勾选「附带完整方案 JSON」）。');
   next = applyPatch(spec, patch);
-  console.log('· 应用 smyw-patch：' + patch.ops.length + ' 条结构修改');
+  console.log('· 应用 jdr-patch：' + patch.ops.length + ' 条结构修改');
 } else if (full) {
   if (full.basedOnVersion != null && Number(full.basedOnVersion) !== curVer) console.log('⚠ 完整方案基于 v' + full.basedOnVersion + '，当前 spec 是 v' + curVer + '，请核对。');
   next = full; delete next.basedOnVersion;
   console.log('· 反馈里没有补丁，使用附带的完整方案');
 } else {
-  if (userEdited) fail('用户改过方案结构，但反馈里没有 smyw-patch。请用户在「反馈」页重新点「复制反馈」，完整粘贴。');
+  if (userEdited) fail('用户改过方案结构，但反馈里没有 jdr-patch。请用户在「反馈」页重新点「复制反馈」，完整粘贴。');
   console.log('· 用户没有改方案结构：直接在现有 spec 上落实批注即可（记得 version + 1）。');
   process.exit(0);
 }

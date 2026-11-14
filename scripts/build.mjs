@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// smyw build: validate a change spec and inline it into one self-contained preview HTML.
+// build: validate a change spec and inline it into one self-contained preview HTML.
 // Usage: node build.mjs <spec.json> [-o preview.html] [--check]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
@@ -118,7 +118,7 @@ function injectReplicaUnits(spec) {
 }
 
 const html = template
-  .replace('__TITLE__', () => escapeHtml((spec.title || 'smyw') + ' · 变更预览'))
+  .replace('__TITLE__', () => escapeHtml((spec.title || '方案变更') + ' · 变更预览'))
   .replace('/*__STYLE__*/', () => css)
   .replace('/*__RUNTIME__*/', () => runtime.replace(/<\/script/gi, '<\\/script'))
   .replace('__SPEC__', () => specJson);

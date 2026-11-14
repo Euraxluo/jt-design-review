@@ -1,0 +1,57 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check scripts
+        run: |
+          for f in scripts/*.mjs; do node --check "$f" || exit 1; done
+      - name: Syntax check runtime
+        run: node --check assets/runtime.js
+
+  build-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build minimal spec
+        run: |
+          mkdir -p /tmp/smoke
+          echo '{"title":"smoke","pages":[{"id":"p1","name":"P","root":{"id":"r1","type":"frame","children":[]},"change":"modified"}],"flows":[],"backend":[],"questions":[]}' > /tmp/smoke/spec.json
+          node scripts/build.mjs /tmp/smoke/spec.json -o /tmp/smoke/preview.html
+          node scripts/build.mjs /tmp/smoke/spec.json --check
+      - name: Build with replica anchors
+        run: |
+          mkdir -p /tmp/smoke2
+          cat > /tmp/smoke2/spec.json <<'SPEC'
+          {"title":"smoke2","pages":[{"id":"p1","name":"P","change":"modified","width":900,
+            "root":{"id":"r1","type":"frame","children":[
+              {"id":"sec1","type":"container","label":"列表","change":"modified","before":{"label":"旧列表"},"children":[]}
+            ]},
+            "htmlBefore":"<div data-replica-unit=\"sec1\">旧内容</div>",
+            "htmlAfter":"<div data-replica-unit=\"sec1\">新内容</div>",
+            "htmlCss":".x{color:red}"}],
+           "flows":[],"backend":[],"questions":[]}
+          SPEC
+          node scripts/build.mjs /tmp/smoke2/spec.json -o /tmp/smoke2/preview.html
+          grep -q "data-unit-n" /tmp/smoke2/preview.html && echo "badge injected ✔"
+      - name: Validator rejects bad spec
+        run: |
+          mkdir -p /tmp/bad
+          echo '{"title":"bad","pages":[{"id":"p1","name":"P","root":{"id":"r1","type":"frame","children":[{"id":"dup","type":"text"},{"id":"dup","type":"text"}]}}],"flows":[],"backend":[]}' > /tmp/bad/spec.json
+          if node scripts/build.mjs /tmp/bad/spec.json -o /tmp/bad/preview.html; then
+            echo "ERROR: duplicate ids should fail"; exit 1
+          else
+            echo "duplicate ids rejected ✔"
+          fi

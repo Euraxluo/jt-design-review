@@ -31,11 +31,10 @@
 | tab | 字段 | 形态 |
 |---|---|---|
 | 界面改动 | pages[].htmlBefore/htmlAfter/htmlCss | 复刻双态；无复刻的页退回上游线框（image 节点 src=evidence 相对路径，build 后由 embed.mjs 内嵌 base64） |
-| 流程变化 | flows[] | 上游格式（steps: actor/text/fn/node） |
-| 系统流程 | sysflows[] | `embedHtml`（Excalidraw iframe，见 excalidraw-embed.md）或 steps 泳道（用户/本平台/外部系统 分道，`kind:"note"` 做阶段分隔） |
-| 数据库变更 | datachanges[] | 模块→items[{table, change, columns:[{name,type,change,note}], indexes, note}] |
+| 流程变化 | flows[] | 基础字段（steps: actor/text/fn/node） |
+| 系统流程 | sysflows[] | `embedHtml`（| 数据库变更 | datachanges[] | 模块→items[{table, change, columns:[{name,type,change,note}], indexes, note}] |
 | 中间件变更 | middleware[] | 模块→items[{name, kind(topic/cache/egress/job), change, config, note}] |
-| 后端变化 | backend[] | 上游格式 |
+| 后端变化 | backend[] | 基础字段 |
 
 ## 4. 构建与验证
 
@@ -64,15 +63,14 @@ node $SKILL/scripts/embed.mjs <preview.html>
 - 踩坑记录：
   - runtime `h()` 原版不支持 innerHTML（setAttribute 无效）→ 二开已加分支
   - `</script>` 在 JSON 内嵌时终止外层脚本 → `\u002f` 转义，embed.mjs 自动做
-  - Excalidraw 场景要 `JSON.stringify` 后再赋给 window 变量（不能塞对象字面量再 JSON.parse）
-  - iframe srcdoc 里 inline script 闭合标签必须是真的 `</script>`（所以只在外层 JSON 转义，srcdoc 内还原）
+  -   - iframe srcdoc 里 inline script 闭合标签必须是真的 `</script>`（所以只在外层 JSON 转义，srcdoc 内还原）
   - headless Chrome 的 `--virtual-time-budget` 对重 JS 页面要给足 8-12s
   - 跨池 id 冲突会让 findBe 命中错误条目（inspector 文不对题）——新池条目 id 一律加池前缀（mw-/db-），并依赖构建期检查拦截
 
 ## 5. 反馈闭环
 
 1. 用户在页面批注/改结构/答问题 → 反馈页「复制反馈」→ 粘贴回对话
-2. 原样存 `.smyw/<dir>/feedback-v<N>.md`
+2. 原样存 `.jdr/<dir>/feedback-v<N>.md`
 3. 有结构修改：`apply-feedback.mjs` 应用补丁（version 校验）；纯批注则直接编辑 spec
 4. 落实后 rebuild + re-embed，告诉用户刷新
 5. 「必须改」全落实、「建议」不采纳要说明、「疑问」先回答；用户点「确认方案」后才开始实现
