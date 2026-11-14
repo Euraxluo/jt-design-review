@@ -456,6 +456,7 @@ function validateSel() {
     else if (s.kind === 'flow') ok = !!flowById(s.id);
     else if (s.kind === 'step') { const f = flowById(s.flow); ok = !!(f && f.steps.some((x) => x.id === s.id)); }
     else if (s.kind === 'be') ok = !!findBe(s.id);
+    else if (s.kind === 'archify') ok = (S.spec.sysflows || []).length > 0;
     if (!ok) ui.sel = null;
   }
   if (!pageById(ui.page) && S.spec.pages[0]) ui.page = S.spec.pages[0].id;
@@ -695,7 +696,7 @@ function renderBanners() {
 }
 function renderTab() {
   if (ui.tab === 'flows') return renderFlows();
-  if (ui.tab === 'sysflow') return renderSysFlows();
+  if (ui.tab === 'sysflow') return h('div', { class: 'cv-layout' }, h('div', { class: 'cv-listbtn' }, '列表'), renderSysFlows(), detailPanel());
   if (ui.tab === 'db') return renderDataChanges();
   if (ui.tab === 'mw') return renderMiddleware();
   if (ui.tab === 'backend') return renderBackend();
@@ -1191,11 +1192,21 @@ function detailRender(n, p, side, whole) {
   const r = renderWF(n, p, { side: side, ctx: 'detail', parentLayout: 'col', whole: !!whole, depth: 0 });
   return r ? h('div', { class: 'dt-render', 'data-page': p.id }, r) : null;
 }
+
+function inspArchify(s) {
+  const sf = (S.spec.sysflows || []).find((x) => x.id === s.page) || (S.spec.sysflows || [])[0];
+  const w = h('div', { class: 'insp-be' },
+    h('div', { class: 'ins-head' }, h('span', { class: 'ins-type' }, '流程图节点'), h('b', null, h('code', null, s.id && s.id !== 'whole' ? short(s.id, 46) : '整图'))),
+    h('div', { class: 'ins-path' }, '系统流程「' + (sf ? sf.name : s.page) + '」'),
+    commentBox({ kind: 'archify', id: s.id, page: s.page }));
+  return w;
+}
 function detailPanel() {
   const u = ui.unit ? UNIT_BY.get(ui.unit) : null;
   const s = ui.sel;
   const parts = [];
   if (u) parts.push(unitDetail(u));
+  if (s && s.kind === 'archify') { parts.push(h('div', { class: 'dt-sec' }, h('div', { class: 'sec-t' }, '对这一处写批注'), inspArchify(s))); }
   if (s && (s.kind === 'node' || s.kind === 'page')) {
     const isUnitRoot = !!u && ((s.kind === 'node' && s.id === u.id) || (s.kind === 'page' && u.kind === 'page' && s.id === u.page));
     const body = s.kind === 'node' ? inspNode(s, isUnitRoot) : inspPage(s, isUnitRoot);
@@ -1347,14 +1358,20 @@ function endPointerDrag(e, commit) {
 }
 document.addEventListener('pointerup', (e) => endPointerDrag(e, true));
 
-// Archify iframe 批注直通: 图内添加批注 → 统一反馈管线
+// Archify iframe 交互直通: 点击节点 → 外层标准批注面板; 直接添加 → 统一反馈管线
 window.addEventListener('message', (ev) => {
   const d = ev.data;
-  if (!d || d.type !== 'jdr-archify-comment') return;
+  if (!d) return;
   const sf = (S.spec.sysflows || []).find((x) => x.id === d.flow) || (S.spec.sysflows || [])[0];
-  addComment({ kind: 'archify', id: d.anchor || 'whole', page: sf ? sf.id : '' }, d.category || '其他', d.severity || '建议', d.text || '');
-  toast('已加入统一反馈（系统流程图）');
-  render();
+  if (d.type === 'jdr-archify-select') {
+    ui.tab = 'sysflow'; ui.unit = null;
+    ui.sel = { kind: 'archify', id: d.anchor || 'whole', page: sf ? sf.id : '' };
+    validateSel(); save(); render();
+  } else if (d.type === 'jdr-archify-comment') {
+    addComment({ kind: 'archify', id: d.anchor || 'whole', page: sf ? sf.id : '' }, d.category || '其他', d.severity || '建议', d.text || '');
+    toast('已加入统一反馈（系统流程图）');
+    render();
+  }
 });
 
 document.addEventListener('pointercancel', (e) => endPointerDrag(e, false));

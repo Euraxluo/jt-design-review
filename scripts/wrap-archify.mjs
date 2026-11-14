@@ -25,7 +25,7 @@ const shell = `
   <button id="arw-export" class="arw-btn" hidden>导出反馈</button>
   <button id="arw-clear" class="arw-btn ghost" hidden>清空</button>
 </div>
-<div id="arw-side">
+<div id="arw-side" hidden>
   <div id="arw-info" class="arw-empty">点击图中任意元素写批注</div>
   <div id="arw-form" hidden>
     <div class="arw-row"><select id="arw-cat">
@@ -44,6 +44,8 @@ const shell = `
 #arw-count{color:#9db3c8;font-size:12px}
 .arw-btn{background:#4c6ef5;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer;margin-left:auto}
 .arw-btn.ghost{background:transparent;border:1px solid #5a6572;margin-left:6px}
+body.arw-embedded #arw-side{display:none!important}
+body.arw-embedded{padding-right:0!important}
 #arw-side{position:fixed;top:44px;right:0;bottom:0;width:320px;background:#fff;border-left:1px solid #d8dee6;z-index:9998;overflow:auto;padding:12px;font:13px/1.5 system-ui;box-shadow:-4px 0 14px rgba(0,0,0,.08)}
 #arw-info{background:#f6f8fa;border:1px solid #e1e6eb;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#333;white-space:pre-wrap}
 .arw-empty{color:#8b949e}
@@ -65,18 +67,19 @@ const shell = `
   try { EMBEDDED = window.parent !== window && !!window.parent.postMessage; } catch (e) {}
   var store = [];
   if (!EMBEDDED) { store = JSON.parse(localStorage.getItem('arw-feedback') || '[]'); }
-  var bar = document.getElementById('arw-bar');
+  if (EMBEDDED) document.body.classList.add('arw-embedded');
   var info = document.getElementById('arw-info');
   var form = document.getElementById('arw-form');
   var list = document.getElementById('arw-list');
   document.getElementById('arw-title').textContent = document.title || 'Archify 图评审';
   if (EMBEDDED) {
-    document.getElementById('arw-mode').textContent = '批注已并入统一反馈';
+    document.getElementById('arw-mode').textContent = '点节点 → 右侧统一批注面板';
   } else {
+    document.getElementById('arw-side').hidden = false;
     document.getElementById('arw-export').hidden = false;
     document.getElementById('arw-clear').hidden = false;
   }
-  function label(el){ /* 与外层 whereOf 的锚文本保持一致 */
+  function label(el){
     if (!el) return '';
     var cur = el, best = null, bestLen = 0;
     for (var i = 0; i < 4 && cur; i++) {
@@ -101,7 +104,7 @@ const shell = `
     return (txt || 'SVG 元素') + (id ? ' #' + id : '');
   }
   function render(){
-    if (EMBEDDED) { document.getElementById('arw-count').textContent = ''; list.innerHTML = '<div class="arw-empty" style="font-size:12px">图内批注实时并入左侧「反馈」tab，去那里查看与导出。</div>'; return; }
+    if (EMBEDDED) { document.getElementById('arw-count').textContent = ''; return; }
     list.innerHTML = '';
     store.forEach(function(f, i){
       var d = document.createElement('div'); d.className = 'arw-item';
@@ -113,35 +116,36 @@ const shell = `
   document.addEventListener('click', function(ev){
     document.querySelectorAll('.arw-hl').forEach(function(x){ x.classList.remove('arw-hl'); });
     var el = ev.target.closest('#arw-side, #arw-bar') ? null : ev.target.closest('svg g[data-id], svg g, [class*="node"], [class*="card"], rect, text');
-    if (!el) { form.hidden = true; return; }
+    if (!el) { if (!EMBEDDED) form.hidden = true; return; }
     CUR = el; el.classList.add('arw-hl');
-    info.textContent = label(el); info.classList.remove('arw-empty');
-    form.hidden = false;
+    var lb = label(el);
+    if (EMBEDDED) {
+      // 单一 UI: 只通知外层打开标准批注面板, 壳内无表单
+      window.parent.postMessage({ type: 'jdr-archify-select', flow: FLOW_ID, anchor: lb }, '*');
+    } else {
+      info.textContent = lb; info.classList.remove('arw-empty');
+      form.hidden = false;
+    }
   });
   function add(){
     var t = document.getElementById('arw-text').value.trim();
     if (!t || !CUR) return;
-    var payload = { cat: document.getElementById('arw-cat').value, target: label(CUR), text: t, time: new Date().toLocaleString('zh-CN') };
-    if (EMBEDDED) {
-      window.parent.postMessage({ type: 'jdr-archify-comment', flow: FLOW_ID, anchor: payload.target, category: payload.cat, severity: document.getElementById('arw-sev').value, text: t }, '*');
-    } else {
-      store.unshift(payload);
-      localStorage.setItem('arw-feedback', JSON.stringify(store));
-    }
+    store.unshift({ cat: document.getElementById('arw-cat').value, target: label(CUR), text: t, time: new Date().toLocaleString('zh-CN') });
+    localStorage.setItem('arw-feedback', JSON.stringify(store));
     document.getElementById('arw-text').value = '';
     render();
   }
   document.getElementById('arw-add').onclick = add;
   document.getElementById('arw-text').addEventListener('keydown', function(e){ if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') add(); });
   list.addEventListener('click', function(e){
-    if (!EMBEDDED && e.target.classList.contains('del')) { store.splice(+e.target.dataset.i, 1); localStorage.setItem('arw-feedback', JSON.stringify(store)); render(); }
+    if (e.target.classList.contains('del')) { store.splice(+e.target.dataset.i, 1); localStorage.setItem('arw-feedback', JSON.stringify(store)); render(); }
   });
   document.getElementById('arw-export').onclick = function(){
     var md = store.map(function(f){ return '- [' + f.cat + '] ' + f.target + ': ' + f.text + '  (' + f.time + ')'; }).join('\\n');
     var blob = new Blob(['# Archify 图评审反馈\\n\\n' + (md || '（无）')], { type: 'text/markdown' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'archify-feedback.md'; a.click();
   };
-  document.getElementById('arw-clear').onclick = function(){ if (EMBEDDED) return; if (confirm('清空全部批注?')) { store = []; localStorage.setItem('arw-feedback', '[]'); render(); } };
+  document.getElementById('arw-clear').onclick = function(){ if (confirm('清空全部批注?')) { store = []; localStorage.setItem('arw-feedback', '[]'); render(); } };
   render();
 })();
 </script>
