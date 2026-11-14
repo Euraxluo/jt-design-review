@@ -433,6 +433,13 @@ function editor(resolve, field, ctx) {
 function addComment(target, category, severity, text) {
   mutate(() => { S.seq = (S.seq || 0) + 1; S.comments.push({ id: 'c' + S.seq, target: target, where: whereOf(target), category: category, severity: severity, text: text, ts: new Date().toISOString() }); return null; });
 }
+
+function mdInline(t) {
+  var s = String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|\s)\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+  return h('div', { class: 'ctext-md', innerHTML: s });
+}
+
 function sameTarget(a, b) { return a.kind === b.kind && a.id === b.id && (a.side || '') === (b.side || ''); }
 function whereOf(t) {
   const sideT = t.side === 'before' ? '改动前' : t.side === 'after' ? '改动后' : '';
@@ -1443,7 +1450,16 @@ function playOverlay(id, side) {
   const f = findNodeAnywhere(id); if (!f) return null;
   const n = f.e.n; if (!visible(n, side)) return null;
   const v = view(n, side);
-  const box = h('div', { class: 'pl-ov pl-ov-' + v.type, style: { width: (OV_W[v.type] || 420) + 'px' } }, renderWF(n, f.p, { side: side, ctx: 'play', parentLayout: 'col' }));
+  // 复刻优先: overlay 节点带 htmlOverlay 时用真实 UI 演示(样式沿用页面 htmlCss)
+  let inner;
+  if (v.htmlOverlay) {
+    const styleTag = f.p.htmlCss ? '<style>@scope(.replica-scope){' + f.p.htmlCss + '}</style>' : '';
+    inner = h('div', { class: 'replica-scope', style: { width: '100%' }, innerHTML: styleTag + v.htmlOverlay,
+      onclick: (ev) => { const a = ev.target.closest && ev.target.closest('a'); if (a) ev.preventDefault(); const nd = ev.target.closest && ev.target.closest('[data-kind="node"][data-id]'); if (nd && runIA(f.p.id, nd.dataset.id)) return; } });
+  } else {
+    inner = renderWF(n, f.p, { side: side, ctx: 'play', parentLayout: 'col' });
+  }
+  const box = h('div', { class: 'pl-ov pl-ov-' + v.type, style: { width: (v.htmlOverlay ? (OV_W[v.type] || 420) : (OV_W[v.type] || 420)) + 'px' } }, inner);
   return h('div', { class: 'pl-back pl-back-' + v.type + (v.type === 'modal' || v.type === 'drawer' ? ' dim' : ''), 'data-close': id }, box);
 }
 function playReplicaBody(p, side) {
@@ -1849,7 +1865,7 @@ function commentBox(target) {
 function commentItem(c) {
   return h('div', { class: 'cmt' }, h('div', { class: 'cmt-meta' }, h('span', { class: 'sev s' + SEVS.indexOf(c.severity) }, c.severity), h('span', { class: 'chip sm' }, c.category),
     h('span', { style: 'margin-left:auto' }), h('button', { class: 'lnk', onclick: (e) => { e.stopPropagation(); mutate(() => { S.comments = S.comments.filter((x) => x.id !== c.id); return null; }); } }, '删除')),
-    h('div', { class: 'ctext' }, c.text));
+    h('div', { class: 'ctext' }, mdInline(c.text)));
 }
 function inspNode(s, compact) {
   const p = pageById(s.page); const e = p && findNode(p, s.id); if (!e) return null;
@@ -2035,7 +2051,7 @@ function renderFeedback() {
       fld('风格参考（链接、产品名或描述）', h('input', { 'data-f': 'g-ref', placeholder: '例如：参考项目里的 /settings 页面；或 Linear 的列表风格', value: g.ref, onchange: (e) => { const v = e.target.value; mutate(() => { S.global.ref = v; return null; }); } }))),
     questionsCard(),
     h('div', { class: 'card' }, h('h3', null, '批注（' + S.comments.length + '）'),
-      sorted.length ? sorted.map((c) => h('div', { class: 'cmt' }, h('div', { class: 'cmt-meta' }, h('span', { class: 'sev s' + SEVS.indexOf(c.severity) }, c.severity), h('span', { class: 'chip sm' }, c.category), h('button', { class: 'where', onclick: () => jump(c.target) }, c.where), h('span', { style: 'margin-left:auto' }), h('button', { class: 'lnk', onclick: () => mutate(() => { S.comments = S.comments.filter((x) => x.id !== c.id); return null; }) }, '删除')), h('div', { class: 'ctext' }, c.text)))
+      sorted.length ? sorted.map((c) => h('div', { class: 'cmt' }, h('div', { class: 'cmt-meta' }, h('span', { class: 'sev s' + SEVS.indexOf(c.severity) }, c.severity), h('span', { class: 'chip sm' }, c.category), h('button', { class: 'where', onclick: () => jump(c.target) }, c.where), h('span', { style: 'margin-left:auto' }), h('button', { class: 'lnk', onclick: () => mutate(() => { S.comments = S.comments.filter((x) => x.id !== c.id); return null; }) }, '删除')), h('div', { class: 'ctext' }, mdInline(c.text))))
         : h('div', { class: 'muted' }, '还没有批注。在「页面 / 流程 / 后端」里点任意元素即可添加。')),
     h('div', { class: 'card' }, h('h3', null, '你对方案做的修改（' + S.ops.length + '）'),
       S.ops.length ? h('ol', { class: 'ops' }, S.ops.map((o) => h('li', null, o.desc))) : h('div', { class: 'muted' }, '还没有修改。切到顶部「编辑方案」可以直接拖动、增删组件。')),

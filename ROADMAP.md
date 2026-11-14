@@ -43,21 +43,21 @@
 - [x] 语义化 CHANGELOG
 - [x] LICENSE（Apache-2.0）
 - [x] 构建自检：`build.mjs --check` 最小 spec 通过
-- [ ] CI：GitHub Actions 跑 lint（node --check × 4 脚本）+ build smoke（最小 spec）+ runtime 冒烟（Playwright 打开 preview 无 pageerror）——**TODO**
-- [ ] 示例库：examples/ 放 1 个完整可开箱体验的示例 spec + 产物——**TODO**
-- [ ] skills.sh / 官方市场发布——**TODO（CI 与示例齐后）**
+- [x] CI：lint + structure + build-smoke + wrap-smoke + runtime-smoke（chromium 打开 preview，7 tab 断言 + 0 pageerror）
+- [x] 示例库：examples/demo-review（绿地场景完整 spec + 产物 + README）
+- [ ] skills.sh / 官方市场发布——**TODO（CI 与示例已齐，待发布动作）**
 
 ## 四、路线图
 
-### v1.1（近期）
-1. **CI 流水线**：lint + smoke + 冒烟（上述 checklist 收口）
-2. **开箱示例**：examples/demo-review/（一个虚构但完整的功能变更：复刻页×2 + Archify 流程 + 数据库 3 表 diff + 中间件决策块 + 预置批注演示反馈闭环）
-3. **多项目自检命令**：`build.mjs --doctor`（环境/依赖/版本体检，对齐 archify doctor 体验）
+### v1.1（已完成 2026-11-14）
+1. ~~CI 流水线~~ ✅ lint + structure + build-smoke + wrap-smoke + runtime-smoke
+2. ~~开箱示例~~ ✅ examples/demo-review（绿地场景：复刻页 + 泳道 + 2 表 diff + 决策块 + 3 API + 2 问题 + 可点复刻抽屉）
+3. ~~自检命令~~ ✅ `build.mjs --doctor`
 
-### v1.2
-4. **反馈管道增强**：反馈 MD 支持 markdown 批注正文；apply-feedback 对 ops 冲突给 diff 预览
-5. **数据库盘点半自动化**：提供 Go GORM struct → spec columns 的提取脚本（其他栈按贡献接入）
-6. **演示模式 overlay 复刻化**：弹窗/抽屉优先用复刻 HTML 变体渲染（当前为抽象树）
+### v1.2（已完成 2026-11-14）
+4. ~~反馈管道增强~~ ✅ 批注正文行内 Markdown；apply-feedback 未命中 ops 汇总报告
+5. ~~数据库盘点半自动化~~ ✅ `extract-gorm.mjs`（Go GORM → columns JSON；其他栈按贡献接入）
+6. ~~演示模式 overlay 复刻化~~ ✅ 节点 `htmlOverlay` 字段，演示以真实 UI 渲染浮层
 
 ### v1.3+
 7. 主题/品牌定制（团队 logo、配色 token 注入）

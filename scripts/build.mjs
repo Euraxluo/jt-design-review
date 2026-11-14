@@ -15,20 +15,55 @@ const IA_ACTIONS = new Set(['open', 'close', 'navigate', 'toggle', 'show', 'hide
 const ACTORS = new Set(['user', 'frontend', 'backend', 'db', 'external', 'system']);
 
 function usage(code) {
-  console.log('用法: node build.mjs <spec.json> [-o <out.html>] [--check]\n  默认输出到 spec 同目录的 preview.html；--check 只校验不生成。');
+  console.log('用法: node build.mjs <spec.json> [-o <out.html>] [--check]\n       node build.mjs --doctor   环境自检\n  默认输出到 spec 同目录的 preview.html；--check 只校验不生成。');
   process.exit(code);
 }
 
 const args = process.argv.slice(2);
-let specPath = null, out = null, checkOnly = false;
+
+async function doctorAll() {
+  const { existsSync } = await import('node:fs');
+  const checks = [];
+  const ok = (label, extra) => { checks.push({ label, ok: true, extra: extra || '' }); };
+  const bad = (label, extra) => { checks.push({ label, ok: false, extra: extra || '' }); };
+  // Node 版本
+  const [maj] = process.versions.node.split('.').map(Number);
+  maj >= 18 ? ok('Node.js ≥ 18', 'v' + process.versions.node) : bad('Node.js ≥ 18', '当前 v' + process.versions.node);
+  // 资产完整
+  for (const f of ['assets/runtime.js', 'assets/style.css', 'assets/template.html', 'scripts/build.mjs', 'scripts/embed.mjs', 'scripts/apply-feedback.mjs', 'scripts/wrap-archify.mjs', 'scripts/extract-gorm.mjs']) {
+    existsSync(join(here, '..', f)) ? ok('文件 ' + f) : bad('文件 ' + f, '缺失');
+  }
+  // 示例可构建
+  const exSpec = join(here, '..', 'examples', 'demo-review', 'spec.json');
+  if (existsSync(exSpec)) {
+    try {
+      const { spawnSync } = await import('node:child_process');
+      const r = spawnSync(process.execPath, [join(here, 'build.mjs'), exSpec, '--check'], { encoding: 'utf8' });
+      r.status === 0 ? ok('示例 spec 构建', r.stdout.trim()) : bad('示例 spec 构建', (r.stderr || r.stdout || '').trim().split('\n')[0]);
+    } catch (e) { bad('示例 spec 构建', e.message); }
+  } else bad('示例 spec', 'examples/demo-review/spec.json 缺失');
+  // Archify 可选
+  const archifyBin = join(process.env.HOME || '', '.agents', 'skills', 'archify', 'bin', 'archify.mjs');
+  existsSync(archifyBin) ? ok('Archify（可选）', '已安装') : checks.push({ label: 'Archify（可选）', ok: true, extra: '未安装——sysflow 将使用泳道渲染' });
+  // 输出
+  console.log('design-change-review doctor\n');
+  for (const c of checks) console.log((c.ok ? '[ok] ' : '[missing] ') + c.label + (c.extra ? ' — ' + c.extra : ''));
+  const fails = checks.filter((c) => !c.ok).length;
+  if (!fails) { console.log('\nAll checks passed.'); return; }
+  console.error('\n✖ ' + fails + ' 项未通过'); process.exitCode = 1;
+}
+
+let specPath = null, out = null, checkOnly = false, doctor = args.includes('--doctor');
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '-o' || a === '--out') out = args[++i];
   else if (a === '--check') checkOnly = true;
+  else if (a === '--doctor') continue;
   else if (a === '-h' || a === '--help') usage(0);
   else if (!specPath) specPath = a;
   else usage(2);
 }
+if (doctor) { await doctorAll(); process.exit(0); }
 if (!specPath) usage(2);
 specPath = resolve(specPath);
 

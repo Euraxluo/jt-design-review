@@ -76,9 +76,10 @@ function applyPatch(spec, patch) {
   };
   const order = (k) => ['del', 'move', 'add', 'set', 'order', 'top'].indexOf(k.op);
   const ops = patch.ops.slice().sort((a, b) => order(a) - order(b));
+  const missed = [];
   for (const op of ops) {
     reindex();
-    if (op.op === 'del') { const e = idx.get(String(op.id)); if (e) detach(e); }
+    if (op.op === 'del') { const e = idx.get(String(op.id)); if (e) detach(e); else missed.push('del ' + op.id); }
     else if (op.op === 'move') { const e = get(op.id, '移动'); detach(e); attach(op.parent, op.key, e.obj); }
     else if (op.op === 'add') {
       const ids = []; (function walk(o) { if (o && typeof o === 'object') { if (o.id != null) ids.push(String(o.id)); ['root', 'overlays', 'children', 'steps'].forEach((k) => { const v = o[k]; if (Array.isArray(v)) v.forEach(walk); else if (k === 'root' && v) walk(v); }); if (Array.isArray(o.items)) o.items.forEach(walk); } })(op.node);
@@ -94,5 +95,6 @@ function applyPatch(spec, patch) {
     else if (op.op === 'top') { Object.assign(spec, op.set || {}); (op.unset || []).forEach((k) => delete spec[k]); }
     else fail('不认识的补丁操作 "' + op.op + '"');
   }
+  if (missed.length) console.log('⚠ 未命中(目标已不在当前 spec): ' + missed.join(', '));
   return spec;
 }

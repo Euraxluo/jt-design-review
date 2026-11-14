@@ -1,0 +1,336 @@
+{
+  "title": "示例 · API 访问审计 · 方案确认原型",
+  "stage": "prototype",
+  "version": 1,
+  "pages": [
+    {
+      "id": "audit",
+      "name": "管理后台 · 审计日志（新增）",
+      "width": 960,
+      "change": "added",
+      "root": {
+        "id": "au-root",
+        "type": "panel",
+        "children": [
+          {
+            "id": "au-toolbar",
+            "type": "toolbar",
+            "label": "筛选栏",
+            "change": "added",
+            "children": [
+              {
+                "id": "au-filter-user",
+                "type": "input",
+                "label": "操作人筛选"
+              },
+              {
+                "id": "au-filter-date",
+                "type": "input",
+                "label": "时间范围"
+              },
+              {
+                "id": "au-btn-export",
+                "type": "button",
+                "label": "导出 CSV",
+                "fn": "POST /api/audit/export"
+              }
+            ],
+            "component": "AuditToolbar"
+          },
+          {
+            "id": "au-table",
+            "type": "table",
+            "label": "审计记录表",
+            "change": "added",
+            "columns": [
+              "时间",
+              "操作人",
+              "动作",
+              "对象",
+              "来源 IP",
+              "结果"
+            ],
+            "rows": [
+              [
+                "11-14 10:22",
+                "zhang.san",
+                "调用 openapi.weather",
+                "city=SH",
+                "10.2.3.4",
+                "200"
+              ],
+              [
+                "11-14 10:19",
+                "li.si",
+                "创建 API Key",
+                "ak-9f2",
+                "10.2.3.5",
+                "200"
+              ],
+              [
+                "11-14 09:58",
+                "zhang.san",
+                "调用 openapi.sms",
+                "phone=***",
+                "10.2.3.4",
+                "403"
+              ]
+            ],
+            "component": "AuditTable",
+            "on": [
+              {
+                "action": "open",
+                "target": "au-drawer"
+              }
+            ]
+          }
+        ],
+        "component": "AuditLogsView"
+      },
+      "htmlAfter": "<div class='col'><h2>审计日志 <span class='tag a'>新增</span></h2><div class='frame'><div class='sb'><div class='nav'><div class='nav-item'>概览</div><div class='nav-item on'>审计日志</div><div class='nav-item'>API Keys</div></div><div class='mainarea'><div class='toolbar'><input placeholder='操作人 / 动作关键字' style='flex:1'><input placeholder='时间范围' style='width:150px'><button class='btn ghost'>导出 CSV</button></div><table class='tbl' data-kind=\"node\" data-id=\"au-table\"><thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>对象</th><th>来源 IP</th><th>结果</th></tr></thead><tbody><tr><td>11-14 10:22</td><td>zhang.san</td><td>调用 openapi.weather</td><td>city=SH</td><td>10.2.3.4</td><td class='ok'>200</td></tr><tr><td>11-14 10:19</td><td>li.si</td><td>创建 API Key</td><td>ak-9f2</td><td>10.2.3.5</td><td class='ok'>200</td></tr><tr><td>11-14 09:58</td><td>zhang.san</td><td>调用 openapi.sms</td><td>phone=***</td><td>10.2.3.4</td><td class='bad'>403</td></tr></tbody></table><div class='muted'>点击行打开详情：脱敏请求/响应体 + trace_id</div></div></div></div></div>",
+      "htmlCss": ".sb{display:flex;height:420px}.nav{width:140px;background:#f6f8fa;padding:10px;display:flex;flex-direction:column;gap:4px}.nav-item{padding:6px 10px;border-radius:6px;font-size:12.5px;color:#57606a}.nav-item.on{background:#dbe9ff;color:#0969da;font-weight:600}.mainarea{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}.toolbar{display:flex;gap:8px}input{border:1px solid #d0d7de;border-radius:6px;padding:5px 8px;font-size:12px}.btn{border:1px solid #d0d7de;background:#fff;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}.tbl{border-collapse:collapse;font-size:12px;width:100%}.tbl th{ text-align:left;background:#f6f8fa;padding:6px 8px;border-bottom:1px solid #d0d7de}.tbl td{padding:6px 8px;border-bottom:1px solid #eaeef2}.ok{color:#1a7f37}.bad{color:#cf222e}.muted{color:#8b949e;font-size:11.5px}.drawer-card{background:#fff;padding:16px;font-size:13px}.drawer-card h3{margin:0 0 10px;font-size:14px}.kv{margin:8px 0;font-size:12px;color:#57606a}.kv span{color:#8b949e;margin-right:8px}",
+      "overlays": [
+        {
+          "id": "au-drawer",
+          "type": "drawer",
+          "label": "记录详情抽屉",
+          "change": "added",
+          "on": [
+            {
+              "action": "open",
+              "target": "au-drawer",
+              "trigger": "点击表格行"
+            }
+          ],
+          "children": [
+            {
+              "id": "au-req-body",
+              "type": "text",
+              "label": "请求体（脱敏·截断 2KB）"
+            },
+            {
+              "id": "au-resp-body",
+              "type": "text",
+              "label": "响应体（脱敏·截断 2KB）"
+            },
+            {
+              "id": "au-trace",
+              "type": "text",
+              "label": "trace_id（关联平台日志）"
+            }
+          ],
+          "component": "AuditDetailDrawer",
+          "htmlOverlay": "<div class='drawer-card'><h3>记录详情</h3><div class='kv'><span>trace_id</span><code>tr-8f3a2c</code></div><div class='kv'><span>请求体</span><code style='display:block;white-space:pre-wrap'>{\"city\":\"SH\"}</code></div><div class='kv'><span>响应体</span><code style='display:block;white-space:pre-wrap'>{\"temp\":18}</code></div></div>"
+        }
+      ]
+    }
+  ],
+  "flows": [],
+  "sysflows": [
+    {
+      "id": "sys-audit",
+      "name": "审计链路（写入→查询→清理）",
+      "change": "added",
+      "steps": [
+        {
+          "id": "as1",
+          "actor": "system",
+          "text": "api-proxy 拦截层产生审计事件（操作人/动作/状态码/耗时）",
+          "fn": "pkg/apiproxy/audit.emit"
+        },
+        {
+          "id": "as2",
+          "actor": "system",
+          "text": "批量写入 audit_logs（5s 窗口，失败退避重试 3 次）",
+          "fn": "pkg/gateway/audit.persist"
+        },
+        {
+          "id": "as3",
+          "actor": "user",
+          "text": "管理员在审计页筛选/查询",
+          "fn": "GET /api/audit"
+        },
+        {
+          "id": "as4",
+          "actor": "system",
+          "text": "每日 03:00 清理 90 天前记录（job）",
+          "fn": "pkg/gateway/audit.cleanup"
+        }
+      ]
+    }
+  ],
+  "datachanges": [
+    {
+      "id": "db-1",
+      "name": "Gateway GORM 库",
+      "change": "unchanged",
+      "note": "PostgreSQL · AutoMigrate 链 + advisory lock",
+      "items": [
+        {
+          "id": "db-audit",
+          "table": "audit_logs",
+          "change": "added",
+          "owner": "pkg/gateway/types/audit.go（新建）",
+          "columns": [
+            {
+              "name": "id",
+              "type": "BIGSERIAL·PK",
+              "change": "added"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMPTZ",
+              "change": "added"
+            },
+            {
+              "name": "user_id",
+              "type": "TEXT·IDX",
+              "change": "added"
+            },
+            {
+              "name": "action",
+              "type": "TEXT",
+              "change": "added",
+              "note": "如 openapi.call / apikey.create"
+            },
+            {
+              "name": "target",
+              "type": "TEXT",
+              "change": "added"
+            },
+            {
+              "name": "source_ip",
+              "type": "INET",
+              "change": "added"
+            },
+            {
+              "name": "status_code",
+              "type": "SMALLINT",
+              "change": "added"
+            },
+            {
+              "name": "req_body",
+              "type": "BYTEA·def=NULL",
+              "change": "added",
+              "note": "加密存储·脱敏后截断 2KB"
+            },
+            {
+              "name": "trace_id",
+              "type": "TEXT",
+              "change": "added"
+            }
+          ],
+          "ddl": "CREATE TABLE audit_logs (\n  id BIGSERIAL PRIMARY KEY,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  user_id TEXT NOT NULL,\n  action TEXT NOT NULL,\n  target TEXT,\n  source_ip INET,\n  status_code SMALLINT,\n  req_body BYTEA,\n  trace_id TEXT\n);\nCREATE INDEX idx_audit_logs_user_created ON audit_logs (user_id, created_at DESC);",
+          "migration": "AutoMigrate（新表，无存量影响）",
+          "rollback": "DropTable audit_logs（审计可重建，无外部依赖）",
+          "note": "预估 <2k 行/天；90 天保留 ≈18 万行，单表+两索引足够，无分区需求"
+        },
+        {
+          "id": "db-users",
+          "table": "users",
+          "change": "unchanged",
+          "owner": "pkg/gateway/types/user.go",
+          "columns": [
+            {
+              "name": "▸ 表语义",
+              "before": "无审计关联",
+              "after": "last_audit_view_at 仅内存记录，不落库",
+              "change": "modified",
+              "note": "列不变；审计查询以 audit_logs.user_id 关联，不改 users"
+            },
+            {
+              "name": "id",
+              "type": "BIGINT·PK",
+              "change": "unchanged"
+            },
+            {
+              "name": "email",
+              "type": "TEXT·UQ",
+              "change": "unchanged"
+            },
+            {
+              "name": "role",
+              "type": "TEXT",
+              "change": "unchanged"
+            }
+          ],
+          "migration": "无 DDL",
+          "rollback": "无（未动表）"
+        }
+      ]
+    }
+  ],
+  "middleware": [
+    {
+      "id": "mw-0",
+      "name": "决策记录",
+      "change": "unchanged",
+      "note": "净变更：0 新中间件组件 · 1 个新后台任务",
+      "items": [
+        {
+          "id": "mw-d1",
+          "name": "不引入 Kafka",
+          "kind": "decision",
+          "change": "unchanged",
+          "config": "审计写入 QPS ≈ 5/s（峰值）",
+          "note": "依据: 批量写库 5s 窗口即可消化，延迟上界 5s 可接受·替代机制: 直接 GORM 批量插入+重试·重评条件: 审计事件 >5k/s 或需要跨服务消费"
+        },
+        {
+          "id": "mw-j1",
+          "name": "audit-cleanup job",
+          "kind": "job",
+          "change": "added",
+          "config": "每日 03:00 · 单实例（复用现有 lease 选主）",
+          "note": "失败→次日重试（幂等：按 created_at 删）·读写表: audit_logs"
+        }
+      ]
+    }
+  ],
+  "backend": [
+    {
+      "id": "be-audit",
+      "name": "审计 API（新模块）",
+      "change": "added",
+      "items": [
+        {
+          "id": "be-1",
+          "name": "GET /api/audit",
+          "change": "added",
+          "note": "分页+筛选（user/action/时间范围）"
+        },
+        {
+          "id": "be-2",
+          "name": "GET /api/audit/:id",
+          "change": "added",
+          "note": "详情（解密脱敏 body）"
+        },
+        {
+          "id": "be-3",
+          "name": "POST /api/audit/export",
+          "change": "added",
+          "note": "CSV 导出（复用现有 export 权限）"
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "text": "审计 body 是否需要解密展示给 Admin，还是仅安全团队可见？",
+      "options": [
+        "Admin 可见（默认）",
+        "仅安全团队",
+        "所有人可见脱敏版"
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "90 天保留期是否满足合规要求？",
+      "options": [
+        "90 天足够",
+        "需要 180 天",
+        "需要 1 年"
+      ]
+    }
+  ]
+}

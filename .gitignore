@@ -2,4 +2,3 @@ node_modules/
 .DS_Store
 *.log
 /tmp/
-.agents/jdr/*/preview.html

@@ -200,6 +200,12 @@ action：
 ## middleware[]（中间件变更 tab）
 模块：`{ id, name, change, note, items: [{ id, name, kind: topic|cache|egress|job, change, config, note }] }`。
 
+## overlay 复刻（htmlOverlay）
+
+modal/drawer/popover/menu 节点可带 `htmlOverlay`：该浮层的复刻 HTML。演示模式点开浮层时
+优先渲染它（复刻视觉 + 真实交互），无则回落抽象线框。样式沿用所属页面的 `htmlCss`；
+浮层内控件可挂 `data-kind="node" data-id` 继续触发原型交互链。
+
 ## 复刻变更标注（data-replica-unit）
 
 - 复刻 HTML 里变更元素挂 `data-replica-unit="<spec 节点 id>"`（节点本身或其最外层变更祖先的 id 均可，build 会用 unitOf 换算）
@@ -250,3 +256,11 @@ action：
 
 - `steps[]`: `{id, actor, text, kind?, fn?, note?, page?}`——actor 决定泳道；kind=decision 渲染 ◇；fn 显示 ƒ 接口；page/page 关联可「在界面上定位」
 - 分组分隔：`{kind:"note", text:"—— 阶段名"}` 或 text 以「——」开头
+
+## on / trigger 语义（易错）
+
+- `on: [{ action, target, state? }]` 挂在**触发者节点**上；`target` 必须是：
+  - `open/toggle/show` → **overlays 池成员**（`pages[].overlays[]` 里的 modal/drawer/popover/menu），不是 root.children 里的普通节点
+  - `navigate` → 页面 id
+- `trigger` 字段是**触发元素 id**（连线用），不是说明文字；说明写 `note`
+- 复刻 HTML 里的可点元素要挂 `data-kind="node" data-id="<spec节点id>"`，演示模式才会走 runIA

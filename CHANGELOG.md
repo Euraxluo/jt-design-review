@@ -3,6 +3,21 @@
 本项目的显著变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)，版本遵循 [SemVer](https://semver.org/)。
 
 
+
+## [1.2.0] - 2026-11-14
+
+### 新增
+- `extract-gorm.mjs`：Go GORM struct → datachanges columns 半自动盘点（PK/UQ/IDX/default 标注、Go→SQL 类型映射、缩写词 snake_case 正确处理）
+- 演示模式浮层复刻化：modal/drawer/popover/menu 节点支持 `htmlOverlay` 字段，演示时以真实 UI 渲染（复用页面 htmlCss），无则回落抽象线框
+- 反馈批注正文支持行内 Markdown（`code` **粗体** *斜体*），渲染时先转义防注入
+- `build.mjs --doctor`：环境自检（Node 版本/资产完整/示例可构建/Archify 可选探测），对齐 archify doctor 体验
+- 开箱示例 `examples/demo-review/`：绿地场景完整 spec（复刻页+泳道+2 表 diff+决策块+3 API+2 待确认问题）+ 产物 + README，含可点击的复刻抽屉演示链路
+- CI 新增 runtime-smoke job（构建示例 → chromium 打开 → 7 tab 文本断言 + 0 pageerror）
+
+### 修复
+- apply-feedback：`del` 未命中目标不再静默，汇总报告"未命中"清单
+- spec-format 文档补充 on/trigger 语义（trigger 是触发元素 id 不是说明文字；open 目标必须是 overlays 池成员）
+
 ## [1.0.1] - 2026-11-14
 
 ### 修复（Archify 系统流程集成）
