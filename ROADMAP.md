@@ -1,4 +1,4 @@
-# 项目规划（jt-design-review · 独立商业级 skill）
+# 项目规划（design-change-review · 独立商业级 skill）
 
 > 定位：**独立开源产品**。与上游 smyw 分叉关系已终结，不再同步；本仓库自有演进路线。
 
@@ -66,7 +66,7 @@
 
 ## 五、资产布局标准
 
-- **Skill 本体**：`<project>/.agents/skills/jt-design-review/`（.agents 是跨工具标准目录，资产跟项目仓库走）
+- **Skill 本体**：`<project>/.agents/skills/design-change-review/`（.agents 是跨工具标准目录，资产跟项目仓库走）
 - **评审产物**：`<project>/.agents/jdr/<日期>-<名称>/`（spec.json / preview.html / feedback-v*.md / evidence）
 - Skill 也可装到用户级 `~/.agents/skills/`（多项目复用）；项目内副本优先，保证团队开箱一致
 

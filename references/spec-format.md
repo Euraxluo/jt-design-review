@@ -184,7 +184,7 @@ action：
 
 ---
 
-# 本 skill 扩展字段（jt-design-review）
+# 本 skill 扩展字段（design-change-review）
 
 ## pages[]
 - `htmlBefore` / `htmlAfter`：1:1 手写复刻 HTML（替代抽象线框渲染）。变更元素挂 `data-replica-unit="<spec节点id>"`（编号/颜色 build 注入）；说明用 `.tipdot>.tipcard` 悬浮卡；联动元素挂 `data-kind="node" data-id="<spec节点id>"`。含 `</` 的内容写 spec 时先哨兵转义由 embed.mjs 校验。

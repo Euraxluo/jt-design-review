@@ -1,4 +1,4 @@
-# jt-design-review
+# design-change-review
 
 **给任何技术栈团队的方案确认原型工作台。**
 
