@@ -157,11 +157,10 @@ node $SKILL/scripts/wrap-archify.mjs arch.html -o arch-review.html --flow sys-1
 | [runtime 架构笔记](references/runtime-notes.md) | 渲染管线、函数地图、修改入口、历史陷阱 |
 | [路线图](ROADMAP.md) | v1.1 → v1.3 |
 
-## 贡献与社区
+## 贡献
 
-- [贡献指南](CONTRIBUTING.md) —— 本地检查清单 + runtime 镜像逻辑同步约定
+- [贡献指南](CONTRIBUTING.md)：本地检查清单 + runtime 镜像逻辑同步约定
 - [安全策略](SECURITY.md)
-- Bug / 需求请用 issue 模板；改 runtime 的 PR 请附必测清单证据
 
 ## License
 

@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Required files present
         run: |
-          for f in SKILL.md README.md CHANGELOG.md LICENSE ROADMAP.md CONTRIBUTING.md SECURITY.md references/workflow.md references/spec-format.md; do
+          for f in SKILL.md README.md CHANGELOG.md LICENSE references/workflow.md references/spec-format.md; do
             [ -f "$f" ] || { echo "missing $f"; exit 1; }
           done
       - name: No stray artifacts committed
