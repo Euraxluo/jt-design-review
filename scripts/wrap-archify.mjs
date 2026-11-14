@@ -1,22 +1,29 @@
 #!/usr/bin/env node
-// wrap-archify.mjs — 给 archify 渲染产物加"点选批注"外壳(与 jt-design-review 反馈格式一致)
-// 用法: node wrap-archify.mjs <archify-output.html> [-o wrapped.html]
+// wrap-archify.mjs — 给 Archify 渲染产物加「点选批注」外壳。
+// 嵌入 design-change-review 系统流程 tab(iframe srcdoc)时: 批注 postMessage 直通外层统一反馈管线(单一存储)。
+// 独立打开(无父页面)时: 回落 localStorage + 导出 MD。
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const args = process.argv.slice(2);
-if (args.length < 1) { console.error('用法: node wrap-archify.mjs <archify-output.html> [-o wrapped.html]'); process.exit(1); }
+if (args.length < 1) { console.error('用法: node wrap-archify.mjs <archify-output.html> [-o wrapped.html] [--flow <sysflow-id>]'); process.exit(1); }
 const srcPath = resolve(args[0]);
-const outPath = args[2] ? resolve(args[2]) : join(dirname(srcPath), srcPath.replace(/\.html$/, '') + '-review.html');
+const flowId = args[args.indexOf('--flow') + 1] || '';
+const outPath = mapOut();
+function mapOut() {
+  const i = args.indexOf('-o');
+  return i >= 0 && args[i + 1] ? resolve(args[i + 1]) : join(dirname(srcPath), srcPath.replace(/\.html$/, '') + '-review.html');
+}
 const html = readFileSync(srcPath, 'utf8');
 
 const shell = `
 <div id="arw-bar">
   <b id="arw-title"></b>
+  <span id="arw-mode"></span>
   <span id="arw-count"></span>
-  <button id="arw-export" class="arw-btn">导出反馈</button>
-  <button id="arw-clear" class="arw-btn ghost">清空</button>
+  <button id="arw-export" class="arw-btn" hidden>导出反馈</button>
+  <button id="arw-clear" class="arw-btn ghost" hidden>清空</button>
 </div>
 <div id="arw-side">
   <div id="arw-info" class="arw-empty">点击图中任意元素写批注</div>
@@ -33,6 +40,7 @@ const shell = `
 <style>
 #arw-bar{position:fixed;top:0;left:0;right:0;height:44px;background:#1c2024;color:#fff;display:flex;align-items:center;gap:12px;padding:0 14px;z-index:9999;font:13px/1 system-ui}
 #arw-bar b{font-size:14px}
+#arw-mode{color:#69db7c;font-size:12px}
 #arw-count{color:#9db3c8;font-size:12px}
 .arw-btn{background:#4c6ef5;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer;margin-left:auto}
 .arw-btn.ghost{background:transparent;border:1px solid #5a6572;margin-left:6px}
@@ -51,41 +59,49 @@ const shell = `
 </style>
 <script>
 (function(){
-  var SEL = [], CUR = null;
-  var store = JSON.parse(localStorage.getItem('arw-feedback') || '[]');
+  var FLOW_ID = '__FLOW_ID__';
+  var CUR = null;
+  var EMBEDDED = false;
+  try { EMBEDDED = window.parent !== window && !!window.parent.postMessage; } catch (e) {}
+  var store = [];
+  if (!EMBEDDED) { store = JSON.parse(localStorage.getItem('arw-feedback') || '[]'); }
   var bar = document.getElementById('arw-bar');
   var info = document.getElementById('arw-info');
   var form = document.getElementById('arw-form');
   var list = document.getElementById('arw-list');
   document.getElementById('arw-title').textContent = document.title || 'Archify 图评审';
-
-  function label(el){
+  if (EMBEDDED) {
+    document.getElementById('arw-mode').textContent = '批注已并入统一反馈';
+  } else {
+    document.getElementById('arw-export').hidden = false;
+    document.getElementById('arw-clear').hidden = false;
+  }
+  function label(el){ /* 与外层 whereOf 的锚文本保持一致 */
     if (!el) return '';
-    // 泳道/boundary 大框(自身无文本): 聚合框内所有节点文本
-    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
-    if (r && r.width > 150 && (el.textContent || '').replace(/\s+/g, ' ').trim().length < 4) {
-      var inside = [];
-      document.querySelectorAll('svg g').forEach(function(g2){
-        var t = (g2.textContent || '').replace(/\s+/g, ' ').trim();
-        if (!t || t.length > 40 || !g2.getBoundingClientRect) return;
-        var b2 = g2.getBoundingClientRect();
-        if (b2.width && b2.height && b2.left >= r.left - 4 && b2.right <= r.right + 4 && b2.top >= r.top - 4 && b2.bottom <= r.bottom + 4) inside.push(t);
-      });
-      if (inside.length) return '泳道/分组框（含 ' + inside.length + ' 个节点: ' + inside.slice(0, 4).join(' · ') + (inside.length > 4 ? ' …' : '') + '）';
-    }
     var cur = el, best = null, bestLen = 0;
     for (var i = 0; i < 4 && cur; i++) {
-      var t = (cur.textContent || '').replace(/\s+/g, ' ').trim();
+      var t = (cur.textContent || '').replace(/\\s+/g, ' ').trim();
       if (t.length > bestLen) { best = cur; bestLen = t.length; }
       cur = cur.parentElement && cur.parentElement.closest('svg g');
     }
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    if (r && r.width > 150 && bestLen < 4) {
+      var inside = [];
+      document.querySelectorAll('svg g').forEach(function(g2){
+        var t2 = (g2.textContent || '').replace(/\\s+/g, ' ').trim();
+        if (!t2 || t2.length > 40 || !g2.getBoundingClientRect) return;
+        var b2 = g2.getBoundingClientRect();
+        if (b2.width && b2.height && b2.left >= r.left - 4 && b2.right <= r.right + 4 && b2.top >= r.top - 4 && b2.bottom <= r.bottom + 4) inside.push(t2);
+      });
+      if (inside.length) return '泳道/分组框（含 ' + inside.length + ' 个节点: ' + inside.slice(0, 4).join(' · ') + (inside.length > 4 ? ' …' : '') + '）';
+    }
     var el2 = best || el;
-    var txt = (el2.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 70);
+    var txt = (el2.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 70);
     var id = el2.getAttribute('data-id') || el2.getAttribute('id') || '';
     return (txt || 'SVG 元素') + (id ? ' #' + id : '');
   }
-
   function render(){
+    if (EMBEDDED) { document.getElementById('arw-count').textContent = ''; list.innerHTML = '<div class="arw-empty" style="font-size:12px">图内批注实时并入左侧「反馈」tab，去那里查看与导出。</div>'; return; }
     list.innerHTML = '';
     store.forEach(function(f, i){
       var d = document.createElement('div'); d.className = 'arw-item';
@@ -105,36 +121,35 @@ const shell = `
   function add(){
     var t = document.getElementById('arw-text').value.trim();
     if (!t || !CUR) return;
-    store.unshift({ cat: document.getElementById('arw-cat').value, target: label(CUR), text: t, time: new Date().toLocaleString('zh-CN') });
-    localStorage.setItem('arw-feedback', JSON.stringify(store));
+    var payload = { cat: document.getElementById('arw-cat').value, target: label(CUR), text: t, time: new Date().toLocaleString('zh-CN') };
+    if (EMBEDDED) {
+      window.parent.postMessage({ type: 'jdr-archify-comment', flow: FLOW_ID, anchor: payload.target, category: payload.cat, severity: document.getElementById('arw-sev').value, text: t }, '*');
+    } else {
+      store.unshift(payload);
+      localStorage.setItem('arw-feedback', JSON.stringify(store));
+    }
     document.getElementById('arw-text').value = '';
     render();
   }
   document.getElementById('arw-add').onclick = add;
   document.getElementById('arw-text').addEventListener('keydown', function(e){ if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') add(); });
   list.addEventListener('click', function(e){
-    if (e.target.classList.contains('del')) { store.splice(+e.target.dataset.i, 1); localStorage.setItem('arw-feedback', JSON.stringify(store)); render(); }
+    if (!EMBEDDED && e.target.classList.contains('del')) { store.splice(+e.target.dataset.i, 1); localStorage.setItem('arw-feedback', JSON.stringify(store)); render(); }
   });
   document.getElementById('arw-export').onclick = function(){
     var md = store.map(function(f){ return '- [' + f.cat + '] ' + f.target + ': ' + f.text + '  (' + f.time + ')'; }).join('\\n');
     var blob = new Blob(['# Archify 图评审反馈\\n\\n' + (md || '（无）')], { type: 'text/markdown' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'archify-feedback.md'; a.click();
-    navigator.clipboard && navigator.clipboard.writeText(md || '（无）');
   };
-  document.getElementById('arw-clear').onclick = function(){ if (confirm('清空全部批注?')) { store = []; localStorage.setItem('arw-feedback', '[]'); render(); } };
+  document.getElementById('arw-clear').onclick = function(){ if (EMBEDDED) return; if (confirm('清空全部批注?')) { store = []; localStorage.setItem('arw-feedback', '[]'); render(); } };
   render();
 })();
 </script>
 `;
-
-// 注入: body 前外壳 + 把页面整体下移 44px(archify 产物通常全屏 svg)
+const finalShell = shell.replace('__FLOW_ID__', flowId);
 let out = html;
-if (/<body[^>]*>/.test(out)) {
-  out = out.replace(/(<body[^>]*>)/, '$1' + shell);
-} else {
-  out = shell + out;
-}
+if (/<body[^>]*>/.test(out)) out = out.replace(/(<body[^>]*>)/, '$1' + finalShell);
+else out = finalShell + out;
 out = out.replace('</head>', '<style>body{padding-top:44px!important;box-sizing:border-box}</style></head>');
 writeFileSync(outPath, out);
 console.log('✔ 已生成 ' + outPath);
-console.log('  ' + fileURLToPath(new URL('file://' + outPath)).replace('file://', ''));

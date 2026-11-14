@@ -442,6 +442,7 @@ function whereOf(t) {
   if (t.kind === 'step') { const f = flowById(t.flow); const s = f && f.steps.find((x) => x.id === t.id); return '流程「' + (f ? f.name : t.flow) + '」› ' + sideT + ' › 步骤' + (s ? stepLabel(view(s, t.side)) : '') + ' #' + t.id; }
   if (t.kind === 'becol') { const tid = String(t.id).split('.')[0]; const colName = String(t.id).slice(tid.length + 1); const f = findBe(tid); return (f ? '数据库 › 「' + (f.item ? (f.item.table || f.item.name) : f.m.name) + '」' : '') + ' › 列「' + colName + '」 #' + t.id; }
   if (t.kind === 'be') { const f = findBe(t.id); if (!f) return '后端 #' + t.id; return (S.spec.datachanges && S.spec.datachanges.some((m) => m.id === t.id) ? '数据库' : S.spec.middleware && S.spec.middleware.some((m) => m.id === t.id) ? '中间件' : '后端') + ' › ' + sideT + ' › 模块「' + f.m.name + '」' + (f.item ? ' › 「' + (f.item.table || f.item.name) + '」' : '') + ' #' + t.id; }
+  if (t.kind === 'archify') { const sf = (S.spec.sysflows || []).find((x) => x.id === t.page); return '系统流程「' + (sf ? sf.name : t.page) + '」› ' + (t.id && t.id !== 'whole' ? '「' + t.id.slice(0, 60) + '」' : '整图'); }
   return '整体';
 }
 function commentCount(kind, id, side) { return S.comments.filter((c) => c.target.kind === kind && c.target.id === id && (c.target.side || '') === (side || '')).length; }
@@ -1345,6 +1346,17 @@ function endPointerDrag(e, commit) {
   if (p.kind === 'move') mutate(() => opMove(pg.id, p.id, dest)); else mutate(() => opAdd(pg.id, p.type, dest));
 }
 document.addEventListener('pointerup', (e) => endPointerDrag(e, true));
+
+// Archify iframe 批注直通: 图内添加批注 → 统一反馈管线
+window.addEventListener('message', (ev) => {
+  const d = ev.data;
+  if (!d || d.type !== 'jdr-archify-comment') return;
+  const sf = (S.spec.sysflows || []).find((x) => x.id === d.flow) || (S.spec.sysflows || [])[0];
+  addComment({ kind: 'archify', id: d.anchor || 'whole', page: sf ? sf.id : '' }, d.category || '其他', d.severity || '建议', d.text || '');
+  toast('已加入统一反馈（系统流程图）');
+  render();
+});
+
 document.addEventListener('pointercancel', (e) => endPointerDrag(e, false));
 
 // ------------------------------------------------------------------ play (prototype) mode
@@ -1652,8 +1664,9 @@ function renderSysFlows() {
   sfs.forEach((f) => {
     if (f.embedHtml != null) {
       out.append(h('div', { class: 'flow card' },
-        h('div', { class: 'flow-head' }, h('span', { class: 'dot dot-added' }), h('h3', null, f.name), f.note ? h('span', { class: 'muted' }, f.note) : null),
-        h('iframe', { srcdoc: f.embedHtml, style: { width: '100%', height: '78vh', border: '1px solid #d5d9e0', borderRadius: '8px', background: '#fff' } })));
+        h('div', { class: 'flow-head', 'data-kind': 'flow', 'data-id': f.id }, h('span', { class: 'dot dot-added' }), h('h3', null, f.name), f.note ? h('span', { class: 'muted' }, f.note) : null,
+          (() => { const n = S.comments.filter((c) => c.target && c.target.kind === 'archify' && c.target.page === f.id).length; return n ? h('span', { class: 'cmt-badge', title: n + ' 条图内批注' }, '💬' + n) : null; })()),
+        h('iframe', { srcdoc: f.embedHtml, 'data-flow': f.id, style: { width: '100%', height: '78vh', border: '1px solid #d5d9e0', borderRadius: '8px', background: '#fff' } })));
       return;
     }
     const st = flowStatus(f);
@@ -1989,7 +2002,7 @@ function jump(t) {
     const lookup = t.kind === 'becol' ? String(t.id).split('.')[0] : t.id;
     const pool = [['backend', S.spec.backend], ['db', S.spec.datachanges], ['mw', S.spec.middleware]].find(([, arr]) => Array.isArray(arr) && arr.some((m) => m.id === lookup || (m.items || []).some((i) => i.id === lookup)));
     ui.tab = pool ? pool[0] : 'backend';
-  }
+  } else if (t.kind === 'archify') { ui.tab = 'sysflow'; ui.page = null; }
   ui.sel = Object.assign({}, t);
   validateSel(); save(); render(); scrollToSel();
 }
