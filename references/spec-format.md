@@ -207,3 +207,46 @@ action：
 - **禁止**在 HTML 里手写编号（data-n）或变更色 class——spec 变更后 rebuild 自动重排，手写必漂移
 - before 侧也要给对应现状元素挂锚点（详情面板"改动前"小图的高亮定位依赖它）
 - 绑定错误会在构建时报 `data-unit-miss`（阻断）
+
+## datachanges 完整字段
+
+模块级（datachanges[] 元素）：
+- `id` / `name` / `note`：模块=库或域（如「Gateway GORM 库(49 张·逐表)」），note 写引擎与迁移链说明
+- `change`：模块整体标记（通常 unchanged，变更在表级）
+- `items[]`：**逐表条目**（一张表=一个条目，有自己的 id，可独立批注）
+
+表级（items[] 元素）：
+- `table` / `id`（池前缀 db-）/ `owner`（模型文件路径）/ `change`：added/modified/removed/unchanged
+- `columns[]`：**字段级 diff**，每列 `{name, type, change, note}`：
+  - change: `added`（绿）/ `modified`（黄，配 `before` 旧值）/ `removed`（红删除线）/ `unchanged`（·灰点）
+  - **修改表的 after 侧把全部列出**（不变列也给 ·），before 侧为现状全列
+  - type 用 SQL 类型（BIGINT/TIMESTAMPTZ/TEXT/BOOLEAN·def=…）
+- **语义变化**（列没动、行为变）：columns 里放一条 `{name:"▸ 表语义", before, note}`——渲染为卡头黄条「旧→新」行为对比行
+- `ddl`：可执行 DDL 文本（新表给完整 CREATE TABLE）
+- `migration` / `rollback`：迁移方式与回滚方式徽章文本（如「无 DDL(代码层停用)」「AutoMigrate+投影列」「恢复代码即可·数据未动」）
+- `indexes[]`：索引变更
+- `note`：变更摘要（显示在卡头）
+- 不动的表也要列（change=unchanged + 一句用途），防遗漏
+
+## middleware 完整字段
+
+模块级：`id` / `name` / `note`（净变更摘要行）/ `change`
+
+`kind` 合法值（渲染标签）：
+| kind | 标签 | 用途 |
+|---|---|---|
+| `decision` | 决策 | 决策记录块（不引入 Kafka/Redis 等）——渲染为不可漏的蓝框说明卡，note 按「·」分段、含「xx:」前缀的段自动变 label:value 行 |
+| `mw` | 中间件 | 通用模块 |
+| `topic`/`cache` | Topic/缓存 | 引入时用（需用户确认+选型对比） |
+| `egress`/`ingress` | 出站/入站端点 | HTTP 端点：config 写 timeout/retry/幂等，note 写失败语义 |
+| `job` | 定时任务 | config 写间隔/并发防护，note 写失败→退避→升级与读写的表 |
+| `ratelimit`/`circuit` | 限流/熔断 | config 写阈值，note 写依据数字 |
+| `metrics`/`alert`/`trace` | 指标/告警/追踪 | 挂现有可观测基建 |
+
+- 条目 `{id(池前缀 mw-), name, kind, change, config, note}`：config 一行参数（渲染为参数行），note 失败语义/依据（渲染为说明行），均可批注
+- 决策块条目 note 的写法示例：`依据: QPS<1/s·替代机制: 回调+轮询·重评条件: SLA<10s`
+
+## sysflows 泳道步骤字段
+
+- `steps[]`: `{id, actor, text, kind?, fn?, note?, page?}`——actor 决定泳道；kind=decision 渲染 ◇；fn 显示 ƒ 接口；page/page 关联可「在界面上定位」
+- 分组分隔：`{kind:"note", text:"—— 阶段名"}` 或 text 以「——」开头

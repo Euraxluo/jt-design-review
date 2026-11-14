@@ -30,10 +30,11 @@
 
 | tab | 字段 | 形态 |
 |---|---|---|
-| 界面改动 | pages[].htmlBefore/htmlAfter/htmlCss | 复刻双态；无复刻的页退回上游线框（image 节点 src=evidence 相对路径，build 后由 embed.mjs 内嵌 base64） |
+| 界面改动 | pages[].htmlBefore/htmlAfter/htmlCss | 复刻双态；无复刻的页退回抽象线框（image 节点 src=evidence 相对路径，build 后由 embed.mjs 内嵌 base64） |
 | 流程变化 | flows[] | 基础字段（steps: actor/text/fn/node） |
-| 系统流程 | sysflows[] | `embedHtml`（| 数据库变更 | datachanges[] | 模块→items[{table, change, columns:[{name,type,change,note}], indexes, note}] |
-| 中间件变更 | middleware[] | 模块→items[{name, kind(topic/cache/egress/job), change, config, note}] |
+| 系统流程 | sysflows[] | `embedHtml`（Archify 包装版 iframe）**或**按阶段分组的泳道步骤（`steps[].kind:"note"` 或 text 以「——」开头作分隔标题） |
+| 数据库变更 | datachanges[] | 模块→items，详见 spec-format.md「datachanges 完整字段」 |
+| 中间件变更 | middleware[] | 模块→items，详见 spec-format.md「middleware 完整字段」 |
 | 后端变化 | backend[] | 基础字段 |
 
 ## 4. 构建与验证

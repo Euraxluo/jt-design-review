@@ -1952,7 +1952,8 @@ function inspBeCol(s) {
     col && col.type ? h('div', { class: 'fld' }, h('span', null, '类型'), h('span', null, col.type)) : null,
     col && col.change && col.change !== 'unchanged' ? h('div', { class: 'fld' }, h('span', null, '变更'), h('span', null, col.change)) : null,
     col && col.note ? h('div', { class: 'mod-note' }, col.note) : null,
-    f.item.note ? h('div', { class: 'mod-note' }, f.item.note) : null);
+    f.item.note ? h('div', { class: 'mod-note' }, f.item.note) : null,
+    commentBox({ kind: 'be', id: s.id, side: s.side }));
   return w;
 }
 function inspBe(s) {
